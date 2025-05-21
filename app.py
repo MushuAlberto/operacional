@@ -3,17 +3,17 @@ import pandas as pd
 from datetime import datetime
 
 # Configuración de la página
-st.set_page_config(page_title="Tablero Despachos", layout="wide")
-st.title("🚚 Tablero de Despachos - Informe Operacional 2025")
+st.set_page_config(page_title="Filtro por Fecha - Tablero Despachos", layout="wide")
+st.title("📅 Filtro por Fecha - Informe Operacional 2025")
 
 # Instrucciones iniciales
 st.markdown("""
 ### 📥 Carga tu archivo Excel
 Por favor, carga el archivo `.xlsm` desde tu computadora.
 El archivo debe contener una pestaña llamada **'Base de Datos'** con los siguientes datos:
-- En la **columna B (índice 1)** están las fechas
-- En la **columna E (índice 4)** está el tiempo de Faena General SdA
-- En la **columna F (índice 5)** está el tiempo de Puerto Angamos
+- En la **columna B** están las fechas
+- En la **columna E** está el tiempo de Faena General SdA
+- En la **columna F** está el tiempo de Puerto Angamos
 """)
 
 # Campo para cargar el archivo
