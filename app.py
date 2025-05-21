@@ -10,10 +10,10 @@ st.title("🚚 Tablero de Despachos - Informe Operacional 2025")
 st.markdown("""
 ### 📥 Carga tu archivo Excel
 Por favor, carga el archivo `.xlsm` desde tu computadora.
-El archivo debe contener una pestaña llamada **'Base de Datos'** con las siguientes columnas:
-- **B1 = Fecha**
-- **E1 = Tpo SdA**
-- **F1 = Tpo Pto.Ang.**
+El archivo debe contener una pestaña llamada **'Base de Datos'** con los siguientes datos:
+- En la **columna B (índice 1)** están las fechas
+- En la **columna E (índice 4)** está el tiempo de Faena General SdA
+- En la **columna F (índice 5)** está el tiempo de Puerto Angamos
 """)
 
 # Campo para cargar el archivo
@@ -35,7 +35,7 @@ if archivo is not None:
             st.markdown("### 🧾 Vista previa del archivo cargado:")
             st.dataframe(df.head(10))
 
-            # Renombrar columnas por posición (B=1, E=4, F=5)
+            # Renombrar columnas por posición
             df.columns = [f'Col_{i}' for i in range(df.shape[1])]
             df.rename(columns={
                 1: 'Fecha',
@@ -43,7 +43,7 @@ if archivo is not None:
                 5: 'Tpo_Pto_Ang'
             }, inplace=True)
 
-            # Convertir fecha y filtrar solo fechas válidas desde 2025
+            # Convertir la columna Fecha a tipo datetime
             df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
             df = df[df['Fecha'] >= '2025-01-01']
 
