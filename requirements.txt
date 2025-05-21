@@ -3,5 +3,3 @@ pandas
 openpyxl
 matplotlib
 seaborn
-plotly
-xlsxwriter
