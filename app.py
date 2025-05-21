@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 # Configuración de la página
 st.set_page_config(page_title="Tablero Despachos", layout="wide")
@@ -25,93 +25,101 @@ if not os.path.exists(ARCHIVO):
 else:
     try:
         # Cargar datos desde la hoja especificada
-        df = pd.read_excel(ARCHIVO, sheet_name=HOJA, engine='openpyxl')
+        df = pd.read_excel(ARCHIVO, sheet_name=HOJA, engine='openpyxl', header=None)  # Sin encabezado
 
-        # Convertir columna de fechas a tipo datetime (si no está ya en ese formato)
-        if 'Fecha' in df.columns:
-            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+        # Renombrar columnas manualmente según posición (B: índice 1, E: índice 4, F: índice 5)
+        df.columns = [f'Col_{i}' for i in range(df.shape[1])]
+        df.rename(columns={
+            1: 'Fecha',
+            4: 'Tiempo_Faena_SdA',
+            5: 'Tiempo_Puerto_Angamos'
+        }, inplace=True)
+
+        # Convertir columna de fechas (Columna B) a tipo datetime y filtrar solo fechas válidas
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+        df = df[df['Fecha'] >= pd.Timestamp('2025-01-01')]
 
         st.success("✅ Archivo cargado correctamente desde la hoja: `Base de Datos`")
 
         # Mostrar encabezado de datos
         st.subheader("📄 Vista previa de los datos")
-        st.dataframe(df.head())
+        st.dataframe(df[['Fecha', 'Tiempo_Faena_SdA', 'Tiempo_Puerto_Angamos']].head())
 
         # Filtro por fecha usando un calendario
-        st.subheader("📅 Filtrar por fecha")
-        fecha_seleccionada = st.date_input(
-            "Selecciona una fecha:",
-            value=df['Fecha'].min()  # Valor predeterminado: primera fecha disponible
+        st.markdown("### 📅 Selecciona una fecha:")
+        fechas_disponibles = sorted(df['Fecha'].dt.date.unique())
+        fecha_seleccionada = st.select_slider(
+            "",
+            options=fechas_disponibles,
+            value=min(fechas_disponibles) if len(fechas_disponibles) > 0 else date.today()
         )
 
         # Formatear la fecha seleccionada para mostrarla de manera amigable
-        fecha_formateada = fecha_seleccionada.strftime("%A, %d de %B de %Y")
-        st.markdown(f"### Fecha: **{fecha_formateada}**")
+        fecha_formateada = fecha_seleccionada.strftime("%A, %d de %B de %Y").capitalize()
+        st.markdown(f"#### 🗓️ Fecha seleccionada: **{fecha_formateada}**")
 
         # Filtrar datos según la fecha seleccionada
-        df_filtrado = df[df['Fecha'] == pd.Timestamp(fecha_seleccionada)]
+        df_filtrado = df[df['Fecha'].dt.date == fecha_seleccionada]
 
-        # Calcular valores para Tiempo (Faena General SdA) y Tiempo (Puerto Angamos)
-        tiempo_faena_sda = df_filtrado['Tiempo (Faena General SdA)'].sum() if 'Tiempo (Faena General SdA)' in df.columns else 0
-        tiempo_puerto_angamos = df_filtrado['Tiempo (Puerto Angamos)'].sum() if 'Tiempo (Puerto Angamos)' in df.columns else 0
+        # Calcular valores para Tiempo (Faena General SdA) y Puerto Angamos
+        tiempo_faena_sda = df_filtrado['Tiempo_Faena_SdA'].sum() if not df_filtrado.empty else 0
+        tiempo_puerto_angamos = df_filtrado['Tiempo_Puerto_Angamos'].sum() if not df_filtrado.empty else 0
 
         # Mostrar resultados en celdas destacadas
-        st.subheader("⏰ Resultados por Fecha")
+        st.markdown("### ⏰ Resultados por Fecha")
         col1, col2 = st.columns(2)
 
         with col1:
-            st.metric(
-                label="Tiempo (Faena General SdA)",
-                value=f"{tiempo_faena_sda:.2f} horas",
-                delta=None,
-                delta_color="normal",
-                help="Tiempo acumulado en Faena General SdA"
-            )
+            st.markdown(f"""
+            <div style="
+                background-color:#f0f8ff;
+                padding:20px;
+                border-radius:10px;
+                text-align:center;
+                font-size:1.2em;
+                box-shadow: 2px 2px 6px rgba(0,0,0,0.1);">
+                <strong>Tiempo (Faena General SdA)</strong><br>
+                {tiempo_faena_sda:.2f} horas
+            </div>
+            """, unsafe_allow_html=True)
 
         with col2:
-            st.metric(
-                label="Tiempo (Puerto Angamos)",
-                value=f"{tiempo_puerto_angamos:.2f} horas",
-                delta=None,
-                delta_color="normal",
-                help="Tiempo acumulado en Puerto Angamos"
-            )
+            st.markdown(f"""
+            <div style="
+                background-color:#fffaf0;
+                padding:20px;
+                border-radius:10px;
+                text-align:center;
+                font-size:1.2em;
+                box-shadow: 2px 2px 6px rgba(0,0,0,0.1);">
+                <strong>Tiempo (Puerto Angamos)</strong><br>
+                {tiempo_puerto_angamos:.2f} horas
+            </div>
+            """, unsafe_allow_html=True)
 
         # Mostrar datos filtrados
-        st.subheader("Datos filtrados por fecha")
-        st.dataframe(df_filtrado)
+        st.markdown("### 📋 Datos filtrados por fecha")
+        st.dataframe(df_filtrado[['Fecha', 'Tiempo_Faena_SdA', 'Tiempo_Puerto_Angamos']], use_container_width=True)
 
-        # Resumen estadístico
-        if st.checkbox("📊 Mostrar resumen estadístico"):
-            st.subheader("📈 Resumen estadístico")
-            st.write(df.describe(include='all'))
+        # Opcional: Análisis visual
+        st.markdown("### 📊 Análisis Visual")
 
-        # Análisis visual
-        st.subheader("📈 Análisis Visual")
-
-        columnas_numericas = df.select_dtypes(include=['number']).columns.tolist()
-        columnas_categoricas = df.select_dtypes(include=['object']).columns.tolist()
-
+        columnas_numericas = ['Tiempo_Faena_SdA', 'Tiempo_Puerto_Angamos']
         col1, col2 = st.columns(2)
 
         if len(columnas_numericas) >= 1:
             with col1:
-                col_x = st.selectbox("Selecciona columna numérica para histograma", columnas_numericas, key="histograma")
                 fig, ax = plt.subplots()
-                sns.histplot(df[col_x].dropna(), kde=True, ax=ax)
+                sns.histplot(df['Tiempo_Faena_SdA'].dropna(), kde=True, ax=ax, color="skyblue")
+                ax.set_title("Distribución Tiempo Faena General SdA")
                 st.pyplot(fig)
 
         if len(columnas_numericas) >= 2:
             with col2:
-                col_y = st.selectbox("Selecciona segunda columna numérica", columnas_numericas, key="dispersion")
                 fig, ax = plt.subplots()
-                sns.scatterplot(data=df, x=col_x, y=col_y, ax=ax)
+                sns.scatterplot(data=df, x='Tiempo_Faena_SdA', y='Tiempo_Puerto_Angamos', ax=ax, color="coral")
+                ax.set_title("Relación entre tiempos")
                 st.pyplot(fig)
-
-        if len(columnas_categoricas) >= 1:
-            col_cat = st.selectbox("Selecciona columna categórica para conteo", columnas_categoricas, key="barras")
-            conteo = df[col_cat].value_counts()
-            st.bar_chart(conteo)
 
     except Exception as e:
         st.error(f"⚠️ Error al procesar el archivo: {e}")
