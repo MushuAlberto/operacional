@@ -35,14 +35,12 @@ if archivo is not None:
             st.markdown("### 🧾 Vista previa del archivo cargado:")
             st.dataframe(df.head(10))
 
-            # Renombrar columnas por posición
+            # Renombrar columnas por posición (B=1, E=4, F=5)
             df.columns = [f'Col_{i}' for i in range(df.shape[1])]
-
-            # Asignar nombres personalizados a las columnas clave
             df.rename(columns={
-                1: 'Fecha',   # Columna B
-                4: 'Tpo_SdA', # Columna E
-                5: 'Tpo_Pto_Ang' # Columna F
+                1: 'Fecha',
+                4: 'Tpo_SdA',
+                5: 'Tpo_Pto_Ang'
             }, inplace=True)
 
             # Convertir fecha y filtrar solo fechas válidas desde 2025
