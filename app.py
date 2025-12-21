@@ -2,89 +2,91 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import google.generativeai as genai
-import re
 
 # --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="Dashboard SQM", layout="wide")
+st.set_page_config(page_title="Dashboard Operacional - Productos", layout="wide")
 
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-pro')
 
-# --- 2. FUNCIÓN DE LIMPIEZA PROFUNDA ---
-def normalizar_nombre(texto):
-    if pd.isna(texto):
-        return "SIN NOMBRE"
-    # Convertir a mayúsculas
-    texto = str(texto).upper()
-    # Eliminar puntos, comas y símbolos raros (como el punto de S.A.)
-    texto = re.sub(r'[.,]', '', texto)
-    # Reemplazar "M & Q" o "M AND Q" por algo uniforme "M&Q" antes de quitar espacios
-    texto = texto.replace(" AND ", "&").replace(" & ", "&")
-    # Eliminar todos los espacios extras
-    texto = " ".join(texto.split())
-    return texto
+st.title("📊 Control de Gestión: Análisis por Producto")
+st.markdown("### Resumen de Tonelaje Despachado")
+st.divider()
 
-# --- 3. DICCIONARIO DE MAPEO ACTUALIZADO ---
-MAPE_EMPRESAS = {
-    # M&Q
-    "M&Q SPA": "M&Q SPA", "MQ SPA": "M&Q SPA", "M&Q": "M&Q SPA", "M & Q SPA": "M&Q SPA",
-    "MINING AND QUARRYING SPA": "M&Q SPA", "MINING AND QUARRYNG SPA": "M&Q SPA",
-    
-    # M S & D
-    "MS&D SPA": "M S & D SPA", "M S & D SPA": "M S & D SPA", "MSD SPA": "M S & D SPA",
-    "MINING SERVICES AND DERIVATES SPA": "M S & D SPA", "M S AND D SPA": "M S & D SPA",
-    
-    # JORQUERA
-    "JORQUERA TRANSPORTE S A": "JORQUERA TRANSPORTE S. A.",
-    
-    # AG SERVICES
-    "AG SERVICE SPA": "AG SERVICES SPA", "AG SERVICES SPA": "AG SERVICES SPA"
-}
-
-st.title("📊 Control de Gestión: Histórico de Romanas")
-
-uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx"])
+# --- 2. CARGA DE DATOS ---
+uploaded_file = st.file_uploader("Subir archivo Excel (02.- Histórico Romanas)", type=["xlsx"])
 
 if uploaded_file:
     try:
         df = pd.read_excel(uploaded_file)
-        df.columns = df.columns.str.strip()
+        df.columns = df.columns.str.strip() # Limpiar espacios en nombres de columnas
         
-        # Limpieza de fechas y números
+        # Convertir Fecha y Tonelaje
         df['FECHA'] = pd.to_datetime(df['FECHA'], dayfirst=True, errors='coerce')
         df = df.dropna(subset=['FECHA'])
         df['TONELAJE'] = pd.to_numeric(df['TONELAJE'], errors='coerce').fillna(0)
-
-        # --- APLICAR LIMPIEZA AGRESIVA ---
-        # Primero normalizamos el texto (quitamos puntos y estandarizamos ampersands)
-        df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].apply(normalizar_nombre)
         
-        # Luego aplicamos el mapeo para agrupar
-        df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].replace(MAPE_EMPRESAS)
+        # Limpieza simple de la columna Producto
+        df['PRODUCTO'] = df['PRODUCTO'].astype(str).str.strip().str.upper()
 
-        # --- FILTROS Y GRÁFICOS ---
-        fecha_sel = st.sidebar.date_input("Fecha", df['FECHA'].max().date())
-        df_view = df[df['FECHA'].dt.date == fecha_sel]
+        # --- 3. FILTROS ---
+        st.sidebar.header("⚙️ Filtros")
+        fecha_sel = st.sidebar.date_input("Seleccionar Fecha", df['FECHA'].max().date())
+        
+        # Filtro de Producto para el usuario
+        lista_productos = sorted(df['PRODUCTO'].unique())
+        productos_sel = st.sidebar.multiselect("Filtrar Productos", lista_productos, default=lista_productos)
+
+        # Aplicar filtros al DataFrame
+        mask = (df['FECHA'].dt.date == fecha_sel) & (df['PRODUCTO'].isin(productos_sel))
+        df_view = df.loc[mask]
 
         if not df_view.empty:
-            st.subheader("🚛 Desempeño por Empresa (Agrupamiento Total)")
+            # --- 4. KPIs PRINCIPALES ---
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Tonelaje Total", f"{df_view['TONELAJE'].sum():,.2f} Ton")
+            c2.metric("Total Viajes", len(df_view))
+            c3.metric("Productos Distintos", df_view['PRODUCTO'].nunique())
+
+            st.divider()
+
+            # --- 5. GRÁFICO POR PRODUCTO ---
+            st.subheader(f"🚛 Distribución de Tonelaje por Producto ({fecha_sel})")
             
-            # AGRUPACIÓN MATEMÁTICA: Aquí es donde se suman las barras
-            df_grouped = df_view.groupby('EMPRESA DE TRANSPORTE', as_index=False)['TONELAJE'].sum()
-            df_grouped = df_grouped.sort_values(by='TONELAJE', ascending=False)
+            # Agrupar datos por Producto
+            df_prod = df_view.groupby('PRODUCTO')['TONELAJE'].sum().reset_index()
+            df_prod = df_prod.sort_values(by='TONELAJE', ascending=False)
 
             fig = px.bar(
-                df_grouped, x='EMPRESA DE TRANSPORTE', y='TONELAJE',
-                color='TONELAJE', text_auto='.2s',
-                color_continuous_scale='Greens'
+                df_prod, 
+                x='PRODUCTO', 
+                y='TONELAJE',
+                color='TONELAJE',
+                text_auto='.2s',
+                color_continuous_scale='Greens',
+                labels={'TONELAJE': 'Tonelaje Total', 'PRODUCTO': 'Tipo de Producto'}
             )
-            st.plotly_chart(fig, use_container_width=True)
             
-            with st.expander("Verificar Agrupación"):
-                st.write("Nombres únicos detectados hoy:", df_grouped['EMPRESA DE TRANSPORTE'].tolist())
+            fig.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # --- 6. ANÁLISIS DE IA ---
+            if st.button("🤖 Analizar Tendencia de Productos"):
+                with st.spinner("La IA está analizando los volúmenes..."):
+                    resumen_ia = df_prod.to_string(index=False)
+                    prompt = f"Analiza estos datos de despacho por producto: {resumen_ia}. ¿Cuál es el producto dominante y qué sugiere esto para la operación del día {fecha_sel}?"
+                    response = model.generate_content(prompt)
+                    st.info(response.text)
+
+            # --- 7. TABLA DE DETALLES ---
+            with st.expander("🔍 Ver registros detallados"):
+                st.dataframe(df_view[['FECHA', 'PRODUCTO', 'DESTINO', 'TONELAJE', 'EMPRESA DE TRANSPORTE']])
+
         else:
-            st.warning("No hay datos para esta fecha.")
+            st.warning(f"No se encontraron registros para el día {fecha_sel}.")
             
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error al procesar el archivo: {e}")
+else:
+    st.info("👋 Por favor, sube el archivo '02.- Histórico Romanas' para generar el gráfico por producto.")
