@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import google.generativeai as genai
+import requests
+import json
 from datetime import datetime, timedelta
 
 # --- 1. CONFIGURACIÓN ---
@@ -12,17 +13,39 @@ st.set_page_config(page_title="Reporte Operacional SQM", layout="wide", page_ico
 def init_gemini():
     """Inicializa y valida la conexión con Gemini"""
     if "GEMINI_API_KEY" in st.secrets:
-        try:
-            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            # Usar el nombre completo del modelo con la versión correcta
-            model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
-            return model, None
-        except Exception as e:
-            return None, f"Error de configuración de IA: {str(e)}"
+        return st.secrets["GEMINI_API_KEY"], None
     else:
         return None, "⚠️ Falta la API Key en los Secrets de Streamlit."
 
-model, error_msg = init_gemini()
+def call_gemini_api(prompt, api_key, model="gemini-1.5-flash-latest"):
+    """Llama a la API de Gemini directamente usando REST"""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    
+    data = {
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        result = response.json()
+        
+        if 'candidates' in result and len(result['candidates']) > 0:
+            return result['candidates'][0]['content']['parts'][0]['text'], None
+        else:
+            return None, "No se recibió respuesta del modelo"
+    except requests.exceptions.RequestException as e:
+        return None, str(e)
+
+api_key, error_msg = init_gemini()
 if error_msg and model is None:
     st.sidebar.warning(error_msg)
 
@@ -217,25 +240,22 @@ if uploaded_file:
             with col_ai3:
                 modelo_nombre = st.selectbox(
                     "Modelo",
-                    ["models/gemini-1.5-flash-latest", "models/gemini-1.5-pro-latest", "models/gemini-1.0-pro-latest"],
+                    ["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-pro"],
                     format_func=lambda x: {
-                        "models/gemini-1.5-flash-latest": "Gemini 1.5 Flash (Rápido)",
-                        "models/gemini-1.5-pro-latest": "Gemini 1.5 Pro (Potente)",
-                        "models/gemini-1.0-pro-latest": "Gemini 1.0 Pro (Estable)"
+                        "gemini-1.5-flash-latest": "Gemini 1.5 Flash (Rápido)",
+                        "gemini-1.5-pro-latest": "Gemini 1.5 Pro (Potente)",
+                        "gemini-pro": "Gemini Pro (Estable)"
                     }[x],
                     help="Flash es el más rápido, Pro es más preciso"
                 )
             
             with col_ai1:
                 if st.button("🚀 Generar Análisis con IA", type="primary", use_container_width=True):
-                    if model is None:
+                    if api_key is None:
                         st.error("❌ La IA no está configurada correctamente. Verifica la API Key de Gemini.")
                     else:
                         try:
                             with st.spinner(f"🔍 Analizando datos con Gemini..."):
-                                # Actualizar modelo si cambió
-                                if modelo_nombre != 'models/gemini-1.5-flash-latest':
-                                    model = genai.GenerativeModel(modelo_nombre)
                                 
                                 # Preparar contexto más rico
                                 estadisticas = {
@@ -302,24 +322,22 @@ Identifica en español:
 3. Oportunidades de consolidación
 4. Productos que requieren atención especial"""
                                 
-                                # Generar respuesta con Gemini
-                                response = model.generate_content(prompt)
+                                # Generar respuesta con Gemini usando API REST
+                                response_text, error = call_gemini_api(prompt, api_key, modelo_nombre)
                                 
-                                # Mostrar resultado
-                                st.markdown("### 📋 Resultado del Análisis")
-                                st.markdown(response.text)
-                                
-                                # Información adicional
-                                col_info1, col_info2, col_info3 = st.columns(3)
-                                with col_info1:
-                                    st.caption(f"🤖 Modelo: {modelo_nombre}")
-                                with col_info2:
-                                    if hasattr(response, 'usage_metadata'):
-                                        st.caption(f"📝 Tokens: {response.usage_metadata.total_token_count}")
-                                    else:
-                                        st.caption("📝 Análisis completado")
-                                with col_info3:
-                                    st.caption(f"⚡ Tipo: {tipo_analisis}")
+                                if error:
+                                    st.error(f"Error al llamar a la API: {error}")
+                                else:
+                                    # Mostrar resultado
+                                    st.markdown("### 📋 Resultado del Análisis")
+                                    st.markdown(response_text)
+                                    
+                                    # Información adicional
+                                    col_info1, col_info2 = st.columns(2)
+                                    with col_info1:
+                                        st.caption(f"🤖 Modelo: {modelo_nombre}")
+                                    with col_info2:
+                                        st.caption(f"⚡ Tipo: {tipo_analisis}")
                                 
                                 # Métricas adicionales en expander
                                 with st.expander("📊 Ver datos utilizados en el análisis"):
@@ -437,7 +455,7 @@ else:
     
     # Mostrar estado de la API
     with st.expander("🔧 Estado de configuración"):
-        if model:
+        if api_key:
             st.success("✅ API de Google Gemini configurada correctamente")
         else:
             st.error("❌ API de Google Gemini no configurada")
