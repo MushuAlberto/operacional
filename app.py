@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
-    page_title="Dashboard Ejecutivo - Transporte de Litio",
+    page_title="Dashboard Ejecutivo SQM",
     page_icon="📊",
     layout="wide"
 )
@@ -61,7 +61,7 @@ if uploaded_file:
         # Limpieza de nombres de columnas
         df.columns = df.columns.str.strip()
 
-        # Conversión de Fechas
+        # Conversión de Fechas (Solución a errores previos)
         df['FECHA'] = pd.to_datetime(df['FECHA'], dayfirst=True, errors='coerce')
         df = df.dropna(subset=['FECHA'])
         
@@ -69,9 +69,8 @@ if uploaded_file:
         df['TONELAJE'] = pd.to_numeric(df['TONELAJE'], errors='coerce').fillna(0)
 
         # --- ESTANDARIZACIÓN DE EMPRESAS ---
-        # Pasamos a mayúsculas y quitamos espacios extra para asegurar el cruce
+        # Pasamos a mayúsculas y quitamos espacios para asegurar el cruce con el diccionario
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].astype(str).str.strip().str.upper()
-        # Aplicamos el mapeo. Si el nombre no está en el diccionario, se queda como está.
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].replace(MAPE_EMPRESAS)
 
         # --- 6. FILTROS LATERALES ---
@@ -86,7 +85,7 @@ if uploaded_file:
         df_view = df.loc[mask]
 
         if not df_view.empty:
-            # --- 7. DASHBOARD EJECUTIVO ---
+            # --- 7. DASHBOARD EJECUTIVO (KPIs) ---
             ton_total = df_view['TONELAJE'].sum()
             total_viajes = len(df_view)
             prom_ton = df_view['TONELAJE'].mean()
@@ -98,48 +97,47 @@ if uploaded_file:
 
             st.markdown("---")
 
-            # --- 8. VISUALIZACIONES ---
-            col_a, col_b = st.columns(2)
-
-            with col_a:
-                st.subheader("🚛 Tonelaje por Empresa (Estandarizado)")
-                # Agrupamos por los nombres ya limpios
-                resumen_empresa = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index()
-                resumen_empresa = resumen_empresa.sort_values(by='TONELAJE', ascending=False)
-                
-                fig_emp = px.bar(
-                    resumen_empresa,
-                    x='EMPRESA DE TRANSPORTE', y='TONELAJE',
-                    color='TONELAJE',
-                    color_continuous_scale='Greens',
-                    labels={'TONELAJE': 'Ton Totales'}
-                )
-                st.plotly_chart(fig_emp, use_container_width=True)
-
-            with col_b:
-                st.subheader("📍 Destinos")
-                fig_dest = px.pie(df_view, values='TONELAJE', names='DESTINO', hole=0.4)
-                st.plotly_chart(fig_dest, use_container_width=True)
+            # --- 8. GRÁFICO DE EMPRESAS (ESTANDARIZADO) ---
+            st.subheader("🚛 Desempeño por Empresa")
+            
+            # Agrupamos por los nombres ya limpios y ordenamos de mayor a menor
+            resumen_empresa = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index()
+            resumen_empresa = resumen_empresa.sort_values(by='TONELAJE', ascending=False)
+            
+            fig_emp = px.bar(
+                resumen_empresa,
+                x='EMPRESA DE TRANSPORTE', y='TONELAJE',
+                color='TONELAJE',
+                color_continuous_scale='Greens',
+                text_auto='.2s',
+                labels={'TONELAJE': 'Ton Totales', 'EMPRESA DE TRANSPORTE': 'Empresa'}
+            )
+            fig_emp.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_emp, use_container_width=True)
 
             # --- 9. ANÁLISIS ESTRATÉGICO CON IA ---
             st.markdown("---")
-            if st.button("Generar Informe Ejecutivo con IA"):
-                with st.spinner("Analizando datos..."):
-                    # Enviamos datos ya agrupados para que la IA sea más precisa
-                    resumen_ia = resumen_empresa.to_string()
-                    prompt = f"Analiza estos datos de transporte: {resumen_ia}. Resume el desempeño de las empresas y detecta la principal transportista hoy."
+            if st.button("🤖 Generar Informe Ejecutivo con IA"):
+                with st.spinner("La IA está analizando los datos consolidados..."):
+                    resumen_ia = resumen_empresa.to_string(index=False)
+                    prompt = f"""
+                    Analiza estos datos de transporte: {resumen_ia}. 
+                    1. Resume el desempeño de las empresas.
+                    2. Identifica la principal transportista hoy.
+                    3. Sugiere una recomendación de eficiencia.
+                    """
                     response = model.generate_content(prompt)
                     st.info(response.text)
 
-            # --- 10. DETALLE ---
+            # --- 10. DETALLE DE DATOS ---
             with st.expander("🔍 Ver registros detallados"):
                 st.dataframe(df_view[['FECHA', 'PRODUCTO', 'DESTINO', 'TONELAJE', 'EMPRESA DE TRANSPORTE']], use_container_width=True)
         
         else:
-            st.warning("No hay datos para esta selección.")
+            st.warning("No hay datos para esta selección de fecha o productos.")
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error al procesar el archivo: {e}")
 
 else:
-    st.info("👋 Sube el archivo '02.- Histórico Romanas' para comenzar.")
+    st.info("👋 Por favor, sube el archivo '02.- Histórico Romanas' para comenzar el análisis.")
