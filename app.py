@@ -19,7 +19,10 @@ def init_gemini():
 
 def call_gemini_api(prompt, api_key, model="gemini-1.5-flash-latest"):
     """Llama a la API de Gemini directamente usando REST"""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    # Limpiar el nombre del modelo (remover -latest si existe para la URL)
+    model_clean = model.replace("-latest", "")
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_clean}:generateContent?key={api_key}"
     
     headers = {
         'Content-Type': 'application/json',
@@ -30,11 +33,15 @@ def call_gemini_api(prompt, api_key, model="gemini-1.5-flash-latest"):
             "parts": [{
                 "text": prompt
             }]
-        }]
+        }],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 2048,
+        }
     }
     
     try:
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, headers=headers, json=data, timeout=30)
         response.raise_for_status()
         result = response.json()
         
@@ -43,7 +50,14 @@ def call_gemini_api(prompt, api_key, model="gemini-1.5-flash-latest"):
         else:
             return None, "No se recibió respuesta del modelo"
     except requests.exceptions.RequestException as e:
-        return None, str(e)
+        error_detail = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_json = e.response.json()
+                error_detail = f"{error_json.get('error', {}).get('message', error_detail)}"
+            except:
+                error_detail = f"HTTP {e.response.status_code}: {e.response.text[:200]}"
+        return None, error_detail
 
 api_key, error_msg = init_gemini()
 if error_msg and model is None:
@@ -240,13 +254,13 @@ if uploaded_file:
             with col_ai3:
                 modelo_nombre = st.selectbox(
                     "Modelo",
-                    ["gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-pro"],
+                    ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"],
                     format_func=lambda x: {
-                        "gemini-1.5-flash-latest": "Gemini 1.5 Flash (Rápido)",
-                        "gemini-1.5-pro-latest": "Gemini 1.5 Pro (Potente)",
+                        "gemini-1.5-flash": "Gemini 1.5 Flash (Rápido y Gratis)",
+                        "gemini-1.5-pro": "Gemini 1.5 Pro (Más Potente)",
                         "gemini-pro": "Gemini Pro (Estable)"
                     }[x],
-                    help="Flash es el más rápido, Pro es más preciso"
+                    help="Flash es rápido y gratis, Pro es más preciso"
                 )
             
             with col_ai1:
@@ -326,7 +340,30 @@ Identifica en español:
                                 response_text, error = call_gemini_api(prompt, api_key, modelo_nombre)
                                 
                                 if error:
-                                    st.error(f"Error al llamar a la API: {error}")
+                                    st.error(f"❌ Error al llamar a la API de Gemini")
+                                    with st.expander("🔍 Ver detalles del error"):
+                                        st.code(error)
+                                        st.info("""
+**Posibles soluciones:**
+
+1. **Verifica tu API Key:**
+   - Ve a https://aistudio.google.com/app/apikey
+   - Asegúrate de copiar la clave completa
+   - Regenera una nueva si es necesario
+
+2. **Modelos disponibles:**
+   - Intenta con "gemini-pro" primero (el más estable)
+   - Si no funciona, prueba "gemini-1.5-flash"
+
+3. **Restricciones regionales:**
+   - Gemini puede no estar disponible en todas las regiones
+   - Verifica en: https://ai.google.dev/available_regions
+
+4. **API Key correcta:**
+   - Debe empezar con "AIzaSy..."
+   - Sin espacios al inicio o final
+   - Configurada en Streamlit Secrets como: GEMINI_API_KEY = "tu-clave"
+                                        """)
                                 else:
                                     # Mostrar resultado
                                     st.markdown("### 📋 Resultado del Análisis")
@@ -345,47 +382,19 @@ Identifica en español:
                                     st.dataframe(df_prod)
                                 
                         except Exception as ia_err:
-                            st.error("❌ Error al generar análisis con IA")
+                            st.error("❌ Error inesperado al generar análisis")
                             with st.expander("🔍 Ver detalles del error"):
                                 st.code(str(ia_err))
-                                
-                                # Detectar tipo de error
-                                error_str = str(ia_err).lower()
-                                if "api key" in error_str or "invalid" in error_str:
-                                    st.warning("""
-**🔑 Error de API Key**
-- Tu API Key es inválida o está mal configurada
-- Verifica que la copiaste correctamente en los Secrets
-- Asegúrate de incluir el prefijo completo
-                                    """)
-                                elif "quota" in error_str or "limit" in error_str:
-                                    st.warning("""
-**📊 Límite de Cuota**
-- Has alcanzado el límite de uso gratuito
-- Gemini Flash tiene límites generosos pero no ilimitados
-- Espera unos minutos e intenta nuevamente
-- Considera usar gemini-1.5-flash si usas Pro
-                                    """)
-                                elif "region" in error_str or "blocked" in error_str:
-                                    st.warning("""
-**🌍 Restricción Regional**
-- Gemini puede tener restricciones en tu región
-- Intenta usar una VPN si es necesario
-- Verifica en: https://ai.google.dev/available_regions
-                                    """)
-                                else:
-                                    st.info("""
-**Posibles causas:**
-- API Key inválida o expirada
-- Límite de cuota excedido
-- Restricciones geográficas
-- Problema de conectividad
+                                st.info("""
+**Intenta lo siguiente:**
 
-**Solución:** 
-1. Verifica tu API Key en los Secrets de Streamlit
-2. Obtén una API Key gratis en: https://makersuite.google.com/app/apikey
-3. Gemini Flash es completamente GRATIS
-                                    """)
+1. **Verifica tu API Key** en Streamlit Secrets
+2. **Prueba con el modelo "gemini-pro"** (el más estable)
+3. **Regenera tu API Key** en Google AI Studio
+4. **Revisa la consola de errores** para más detalles
+
+Si el problema persiste, puede ser una restricción regional o de la cuenta.
+                                """)
             
             st.divider()
             
