@@ -18,19 +18,9 @@ else:
     st.warning("⚠️ IA Desactivada: Configura GEMINI_API_KEY en los Secrets.")
 
 # --- 3. DICCIONARIO DE ESTANDARIZACIÓN ACTUALIZADO ---
-# Ahora todas las variantes de M S & D apuntan al nombre largo solicitado
+# Se han aplicado exactamente las reglas de nombre solicitadas
 MAPE_EMPRESAS = {
-    "JORQUERA TRANSPORTE S A": "JORQUERA TRANSPORTE S. A.",
-    "MINING SERVICES AND DERIVATES": "MINING SERVICES AND DERIVATES SPA",
-    "MINING SERVICES AND DERIVATES SPA": "MINING SERVICES AND DERIVATES SPA",
-    "M S AND D": "MINING SERVICES AND DERIVATES SPA",
-    "M S AND D SPA": "MINING SERVICES AND DERIVATES SPA",
-    "MSANDD SPA": "MINING SERVICES AND DERIVATES SPA",
-    "M S D": "MINING SERVICES AND DERIVATES SPA",
-    "M S D SPA": "MINING SERVICES AND DERIVATES SPA",
-    "M S & D": "MINING SERVICES AND DERIVATES SPA",
-    "M S & D SPA": "MINING SERVICES AND DERIVATES SPA",
-    "MS&D SPA": "MINING SERVICES AND DERIVATES SPA",
+    # Grupo M&Q SPA
     "M AND Q SPA": "M&Q SPA",
     "M AND Q": "M&Q SPA",
     "M Q SPA": "M&Q SPA",
@@ -39,6 +29,21 @@ MAPE_EMPRESAS = {
     "MANDQ SPA": "M&Q SPA",
     "MINING AND QUARRYING SPA": "M&Q SPA",
     "MINING AND QUARRYNG SPA": "M&Q SPA",
+    
+    # Grupo M S & D SPA
+    "MINING SERVICES AND DERIVATES": "M S & D SPA",
+    "MINING SERVICES AND DERIVATES SPA": "M S & D SPA",
+    "M S AND D": "M S & D SPA",
+    "M S AND D SPA": "M S & D SPA",
+    "MSANDD SPA": "M S & D SPA",
+    "M S D": "M S & D SPA",
+    "M S D SPA": "M S & D SPA",
+    "M S & D": "M S & D SPA",
+    "M S & D SPA": "M S & D SPA",
+    "MS&D SPA": "M S & D SPA",
+    
+    # Otros
+    "JORQUERA TRANSPORTE S A": "JORQUERA TRANSPORTE S. A.",
     "AG SERVICE SPA": "AG SERVICES SPA",
     "AG SERVICES SPA": "AG SERVICES SPA",
     "COSEDUCAM S A": "COSEDUCAM S A"
@@ -63,6 +68,7 @@ if uploaded_file:
         df['TONELAJE'] = pd.to_numeric(df['TONELAJE'], errors='coerce').fillna(0)
 
         # --- PROCESO DE LIMPIEZA DE EMPRESAS ---
+        # Convertimos a mayúsculas y quitamos espacios para asegurar el match con el diccionario
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].astype(str).str.strip().str.upper()
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].replace(MAPE_EMPRESAS)
 
@@ -86,8 +92,8 @@ if uploaded_file:
 
             st.markdown("---")
 
-            # --- 8. GRÁFICO DE EMPRESAS (CON NUEVO NOMBRE) ---
-            st.subheader("🚛 Desempeño por Empresa (Estandarizado)")
+            # --- 8. GRÁFICO DE EMPRESAS ---
+            st.subheader("🚛 Desempeño por Empresa (Nombres Estandarizados)")
             
             df_grouped = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index()
             df_grouped = df_grouped.sort_values(by='TONELAJE', ascending=False)
@@ -109,11 +115,11 @@ if uploaded_file:
             if st.button("🤖 Generar Resumen Analítico"):
                 with st.spinner("Analizando..."):
                     resumen = df_grouped.to_string(index=False)
-                    prompt = f"Analiza estos datos de transporte: {resumen}. Indica el desempeño de las empresas, especialmente de MINING SERVICES AND DERIVATES SPA."
+                    prompt = f"Analiza estos datos de transporte: {resumen}. Resume el desempeño de las empresas hoy."
                     response = model.generate_content(prompt)
                     st.info(response.text)
 
-            with st.expander("🔍 Ver registros"):
+            with st.expander("🔍 Ver registros detallados"):
                 st.dataframe(df_view)
         else:
             st.warning("No hay datos para esta selección.")
