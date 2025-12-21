@@ -14,7 +14,8 @@ def init_gemini():
     if "GEMINI_API_KEY" in st.secrets:
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            model = genai.GenerativeModel('gemini-pro')
+            # Usar el nombre completo del modelo con la versión correcta
+            model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
             return model, None
         except Exception as e:
             return None, f"Error de configuración de IA: {str(e)}"
@@ -216,12 +217,13 @@ if uploaded_file:
             with col_ai3:
                 modelo_nombre = st.selectbox(
                     "Modelo",
-                    ["gemini-pro", "gemini-pro-vision"],
+                    ["models/gemini-1.5-flash-latest", "models/gemini-1.5-pro-latest", "models/gemini-1.0-pro-latest"],
                     format_func=lambda x: {
-                        "gemini-pro": "Gemini Pro (Recomendado)",
-                        "gemini-pro-vision": "Gemini Pro Vision (Con imágenes)"
+                        "models/gemini-1.5-flash-latest": "Gemini 1.5 Flash (Rápido)",
+                        "models/gemini-1.5-pro-latest": "Gemini 1.5 Pro (Potente)",
+                        "models/gemini-1.0-pro-latest": "Gemini 1.0 Pro (Estable)"
                     }[x],
-                    help="Gemini Pro es el modelo estándar y gratuito"
+                    help="Flash es el más rápido, Pro es más preciso"
                 )
             
             with col_ai1:
@@ -232,7 +234,7 @@ if uploaded_file:
                         try:
                             with st.spinner(f"🔍 Analizando datos con Gemini..."):
                                 # Actualizar modelo si cambió
-                                if modelo_nombre != 'gemini-pro':
+                                if modelo_nombre != 'models/gemini-1.5-flash-latest':
                                     model = genai.GenerativeModel(modelo_nombre)
                                 
                                 # Preparar contexto más rico
@@ -464,6 +466,12 @@ GEMINI_API_KEY = "AIzaSy-tu-api-key-aqui"
 - **🎁 Límites generosos** en el plan gratuito
 
 ### 📋 Modelos disponibles:
-- **gemini-pro**: Modelo estándar, gratis, ideal para análisis de texto
-- **gemini-pro-vision**: Para análisis que incluyan imágenes
+- **gemini-1.5-flash**: Rápido y eficiente, ideal para la mayoría de casos
+- **gemini-1.5-pro**: Más potente y preciso para análisis complejos
+- **gemini-1.0-pro**: Versión estable anterior
+
+### 🔧 Si tienes problemas:
+1. Verifica que tu API Key esté correcta
+2. Asegúrate de tener instalado: `google-generativeai>=0.4.0`
+3. Intenta regenerar tu API Key en Google AI Studio
             """)
