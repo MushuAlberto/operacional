@@ -2,32 +2,32 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import google.generativeai as genai
+from openai import OpenAI
 from datetime import datetime, timedelta
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Reporte Operacional SQM", layout="wide", page_icon="📊")
 
 # Inicialización segura de la IA
-def init_gemini():
-    """Inicializa y valida la conexión con Gemini"""
-    if "GEMINI_API_KEY" in st.secrets:
+def init_openai():
+    """Inicializa y valida la conexión con OpenAI"""
+    if "OPENAI_API_KEY" in st.secrets:
         try:
-            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            return model, None
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+            # Test simple para verificar la conexión
+            return client, None
         except Exception as e:
             return None, f"Error de configuración de IA: {str(e)}"
     else:
         return None, "⚠️ Falta la API Key en los Secrets de Streamlit."
 
-model, error_msg = init_gemini()
+client, error_msg = init_openai()
 if error_msg:
     st.sidebar.warning(error_msg)
 
 # Título principal
 st.title("📊 Análisis de Despacho por Producto - SQM")
-st.markdown("**Sistema de análisis operacional con IA integrada**")
+st.markdown("**Sistema de análisis operacional con IA integrada (ChatGPT)**")
 st.divider()
 
 # --- 2. CARGA DE DATOS ---
@@ -202,10 +202,10 @@ if uploaded_file:
             
             st.divider()
             
-            # --- 6. ANÁLISIS CON IA MEJORADO ---
-            st.subheader("🤖 Análisis Inteligente con IA")
+            # --- 6. ANÁLISIS CON IA (OPENAI/CHATGPT) ---
+            st.subheader("🤖 Análisis Inteligente con ChatGPT")
             
-            col_ai1, col_ai2 = st.columns([3, 1])
+            col_ai1, col_ai2, col_ai3 = st.columns([2, 1, 1])
             
             with col_ai2:
                 tipo_analisis = st.selectbox(
@@ -213,15 +213,21 @@ if uploaded_file:
                     ["Resumen General", "Análisis Detallado", "Recomendaciones", "Comparativa"]
                 )
             
+            with col_ai3:
+                modelo = st.selectbox(
+                    "Modelo",
+                    ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+                    help="GPT-4o es más preciso, GPT-3.5-turbo es más rápido y económico"
+                )
+            
             with col_ai1:
                 if st.button("🚀 Generar Análisis con IA", type="primary", use_container_width=True):
-                    if model is None:
-                        st.error("❌ La IA no está configurada correctamente. Verifica la API Key.")
+                    if client is None:
+                        st.error("❌ La IA no está configurada correctamente. Verifica la API Key de OpenAI.")
                     else:
                         try:
-                            with st.spinner("🔍 Analizando datos con IA..."):
+                            with st.spinner(f"🔍 Analizando datos con {modelo}..."):
                                 # Preparar contexto más rico
-                                resumen_productos = df_prod.to_dict('records')
                                 estadisticas = {
                                     'total_tonelaje': float(total_ton),
                                     'num_viajes': int(num_viajes),
@@ -231,9 +237,6 @@ if uploaded_file:
                                     'fecha_fin': str(fecha_fin),
                                     'dias_analisis': (fecha_fin - fecha_inicio).days + 1
                                 }
-                                
-                                # Producto más despachado
-                                top_producto = df_prod.iloc[0] if not df_prod.empty else None
                                 
                                 # Construir prompt según tipo de análisis
                                 if tipo_analisis == "Resumen General":
@@ -289,12 +292,35 @@ Identifica:
 3. Oportunidades de consolidación
 4. Productos que requieren atención especial"""
                                 
-                                # Generar respuesta
-                                response = model.generate_content(prompt)
+                                # Generar respuesta con OpenAI
+                                response = client.chat.completions.create(
+                                    model=modelo,
+                                    messages=[
+                                        {
+                                            "role": "system", 
+                                            "content": "Eres un analista experto en operaciones logísticas y minería. Proporciona análisis claros, concisos y accionables en español."
+                                        },
+                                        {
+                                            "role": "user", 
+                                            "content": prompt
+                                        }
+                                    ],
+                                    temperature=0.7,
+                                    max_tokens=1000
+                                )
                                 
                                 # Mostrar resultado
                                 st.markdown("### 📋 Resultado del Análisis")
-                                st.markdown(response.text)
+                                st.markdown(response.choices[0].message.content)
+                                
+                                # Información adicional
+                                col_info1, col_info2, col_info3 = st.columns(3)
+                                with col_info1:
+                                    st.caption(f"🤖 Modelo: {modelo}")
+                                with col_info2:
+                                    st.caption(f"📝 Tokens usados: {response.usage.total_tokens}")
+                                with col_info3:
+                                    st.caption(f"⚡ Tipo: {tipo_analisis}")
                                 
                                 # Métricas adicionales en expander
                                 with st.expander("📊 Ver datos utilizados en el análisis"):
@@ -308,11 +334,14 @@ Identifica:
                                 st.info("""
 **Posibles causas:**
 - API Key inválida o expirada
-- Límite de cuota excedido
-- Restricciones geográficas
+- Límite de cuota excedido (verifica tu saldo en OpenAI)
 - Problema de conectividad
+- Modelo no disponible en tu cuenta
 
-**Solución:** Verifica tu API Key en los Secrets de Streamlit
+**Solución:** 
+1. Verifica tu API Key en los Secrets de Streamlit
+2. Revisa tu saldo en platform.openai.com/usage
+3. Intenta con gpt-3.5-turbo si tienes problemas con GPT-4
                                 """)
             
             st.divider()
@@ -370,24 +399,35 @@ else:
     1. Sube el archivo Excel con los datos de despachos
     2. Usa los filtros en la barra lateral para ajustar el análisis
     3. Explora las diferentes visualizaciones en las pestañas
-    4. Genera análisis inteligentes con IA para obtener insights
+    4. Genera análisis inteligentes con ChatGPT para obtener insights
     
     ### 📊 Características:
     - ✅ Análisis de KPIs operacionales
     - ✅ Visualizaciones interactivas
-    - ✅ Análisis con IA (Gemini)
+    - ✅ Análisis con IA (ChatGPT GPT-4/GPT-3.5)
     - ✅ Exportación de datos
     - ✅ Filtros avanzados
+    - ✅ Selección de modelos de IA
     """)
     
     # Mostrar estado de la API
     with st.expander("🔧 Estado de configuración"):
-        if model:
-            st.success("✅ API de Gemini configurada correctamente")
+        if client:
+            st.success("✅ API de OpenAI configurada correctamente")
         else:
-            st.error("❌ API de Gemini no configurada")
-            st.code("""
-# Para configurar la API de Gemini:
-1. Ve a Settings > Secrets en Streamlit Cloud
-2. Agrega: GEMINI_API_KEY = "tu-api-key-aqui"
+            st.error("❌ API de OpenAI no configurada")
+            st.markdown("""
+### Para configurar la API de OpenAI:
+
+1. Obtén tu API Key en: https://platform.openai.com/api-keys
+2. En Streamlit Cloud, ve a **Settings > Secrets**
+3. Agrega el siguiente código:
+
+```toml
+OPENAI_API_KEY = "sk-tu-api-key-aqui"
+```
+
+4. Guarda y reinicia la app
+
+**Nota:** Asegúrate de tener saldo disponible en tu cuenta de OpenAI.
             """)
