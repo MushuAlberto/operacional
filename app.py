@@ -8,6 +8,7 @@ import requests
 st.set_page_config(page_title="Dashboard Operacional SQM", layout="wide", page_icon="📈")
 
 def call_gemini_api(prompt, api_key, model="gemini-1.5-flash"):
+    # Ruta v1beta para máxima compatibilidad con modelos 1.5
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
     data = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.2}}
@@ -18,9 +19,10 @@ def call_gemini_api(prompt, api_key, model="gemini-1.5-flash"):
         return "Error al conectar con la IA", "Error"
 
 # --- 2. CARGA DE ARCHIVOS ---
-st.title("📊 Control de Despachos y Cumplimiento")
-col_up1, col_up2 = st.columns(2)
+st.title("📊 Control de Despachos y Cumplimiento 2025")
+st.markdown("---")
 
+col_up1, col_up2 = st.columns(2)
 with col_up1:
     file_romanas = st.file_uploader("📁 02.- Histórico Romanas", type=["xlsx"])
 with col_up2:
@@ -29,83 +31,98 @@ with col_up2:
 if file_tablero and file_romanas:
     try:
         # --- PROCESAMIENTO TABLERO (03) ---
-        # Definimos las columnas por posición (B=1, AF=31, AG=32, AH=33, AI=34, AJ=35, AK=36, AL=37)
-        cols_tablero = [1, 31, 32, 33, 34, 35, 36, 37] 
-        df_tab = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_tablero, engine='openpyxl')
-        
-        # Renombramos para facilitar el uso
-        df_tab.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Equipos_Prog', 'Equipos_Real', 'Cumplimiento']
-        df_tab['Fecha'] = pd.to_datetime(df_tab['Fecha'], errors='coerce')
-        df_tab = df_tab.dropna(subset=['Producto'])
+        # Columnas: B=1, AF=31, AG=32, AH=33, AI=34, AJ=35, AK=36, AL=37
+        cols_tab = [1, 31, 32, 33, 34, 35, 36, 37] 
+        df_tab = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_tab, engine='openpyxl')
+        df_tab.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Eq_Prog', 'Eq_Real', 'Cumplimiento']
+        df_tab['Producto'] = df_tab['Producto'].astype(str).str.strip().str.upper()
 
         # --- PROCESAMIENTO ROMANAS (02) ---
-        # Columnas W, X, Y son 22, 23, 24 (index 0)
-        df_rom = pd.read_excel(file_romanas, usecols=[0, 22, 23, 24], engine='openpyxl') 
-        df_rom.columns = ['Fecha_R', 'Regulacion_1', 'Regulacion_2', 'Regulacion_3']
-
-        # --- 3. FILTROS LATERALES ---
-        st.sidebar.header("🎯 Filtros de Dashboard")
+        # Buscamos columnas de regulación W, X, Y (índices 22, 23, 24) y Producto para filtrar
+        df_rom = pd.read_excel(file_romanas, engine='openpyxl')
+        # Limpieza de nombres de columnas en Romanas para evitar errores de espacios
+        df_rom.columns = df_rom.columns.str.strip().str.upper()
+        
+        # --- 3. FILTROS Y SELECCIÓN ---
+        st.sidebar.header("🎯 Selección de Producto")
         lista_productos = sorted(df_tab['Producto'].unique())
-        prod_sel = st.sidebar.selectbox("Seleccionar Producto", lista_productos)
+        prod_sel = st.sidebar.selectbox("Producto a Consultar", lista_productos)
         
-        # Filtrar datos por producto seleccionado
         df_p = df_tab[df_tab['Producto'] == prod_sel]
+        
+        # Filtrar regulaciones en Romanas para el producto seleccionado
+        # Asumiendo que existe una columna 'PRODUCTO' en Romanas
+        if 'PRODUCTO' in df_rom.columns:
+            df_reg_sel = df_rom[df_rom['PRODUCTO'].astype(str).str.upper() == prod_sel]
+            reg1 = df_reg_sel['REGULACION 1'].sum() if 'REGULACION 1' in df_reg_sel.columns else 0
+            reg2 = df_reg_sel['REGULACION 2'].sum() if 'REGULACION 2' in df_reg_sel.columns else 0
+            reg3 = df_reg_sel['REGULACION 3'].sum() if 'REGULACION 3' in df_reg_sel.columns else 0
+        else:
+            reg1, reg2, reg3 = 0, 0, 0
 
-        # --- 4. VISUALIZACIÓN DE KPIs ---
-        st.header(f"Dashboard: {prod_sel}")
-        
-        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-        t_prog = df_p['Ton_Prog'].sum()
-        t_real = df_p['Ton_Real'].sum()
-        cumpl_avg = (t_real / t_prog * 100) if t_prog > 0 else 0
-        
-        kpi1.metric("Ton. Programadas", f"{t_prog:,.1f}")
-        kpi2.metric("Ton. Reales", f"{t_real:,.1f}")
-        kpi3.metric("% Cumplimiento Total", f"{cumpl_avg:.1f}%")
-        kpi4.metric("Equipos Reales", f"{df_p['Equipos_Real'].sum():.0f}")
+        # --- 4. TARJETAS MÉTRICAS ---
+        t_prog, t_real = df_p['Ton_Prog'].sum(), df_p['Ton_Real'].sum()
+        cump_tot = (t_real / t_prog * 100) if t_prog > 0 else 0
+        eq_prog, eq_real = df_p['Eq_Prog'].sum(), df_p['Eq_Real'].sum()
 
-        # --- 5. GRÁFICOS ---
-        col_g1, col_g2 = st.columns(2)
-        
-        with col_g1:
-            # Gráfico de Barras: Prog vs Real por Destino
-            df_dest = df_p.groupby('Destino')[['Ton_Prog', 'Ton_Real']].sum().reset_index()
-            fig_dest = go.Figure(data=[
-                go.Bar(name='Programado', x=df_dest['Destino'], y=df_dest['Ton_Prog'], marker_color='#A8D5BA'),
-                go.Bar(name='Real', x=df_dest['Destino'], y=df_dest['Ton_Real'], marker_color='#2E7D32')
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Cumplimiento Total", f"{cump_tot:.1f}%", delta=f"{cump_tot-100:.1f}% vs Meta")
+        with m2:
+            st.metric("Total Equipos Reales", f"{eq_real:.0f} camiones")
+        with m3:
+            total_reg = reg1 + reg2 + reg3
+            st.metric("Total Regulaciones", f"{total_reg:.0f}", delta="Equipos en espera", delta_color="inverse")
+
+        # --- 5. GRÁFICOS COMPARATIVOS ---
+        st.subheader(f"Análisis de Desempeño: {prod_sel}")
+        g1, g2 = st.columns(2)
+
+        with g1:
+            # Gráfico Toneladas
+            fig_ton = go.Figure(data=[
+                go.Bar(name='Programado', x=['Tonelaje'], y=[t_prog], marker_color='#A8D5BA'),
+                go.Bar(name='Real', x=['Tonelaje'], y=[t_real], marker_color='#2E7D32')
             ])
-            fig_dest.update_layout(title="Cumplimiento por Destino (Toneladas)", barmode='group')
-            st.plotly_chart(fig_dest, use_container_width=True)
+            fig_ton.update_layout(title="Toneladas: Prog vs Real", barmode='group', height=400)
+            st.plotly_chart(fig_ton, use_container_width=True)
 
-        with col_g2:
-            # Evolución del Cumplimiento
-            fig_line = px.line(df_p, x='Fecha', y='Cumplimiento', title="Evolución % Cumplimiento Diario", markers=True)
-            fig_line.add_hline(y=100, line_dash="dash", line_color="red", annotation_text="Meta 100%")
-            st.plotly_chart(fig_line, use_container_width=True)
+        with g2:
+            # Gráfico Equipos
+            fig_eq = go.Figure(data=[
+                go.Bar(name='Programado', x=['Equipos'], y=[eq_prog], marker_color='#BDD7EE'),
+                go.Bar(name='Real', x=['Equipos'], y=[eq_real], marker_color='#2F5597')
+            ])
+            fig_eq.update_layout(title="Equipos: Prog vs Real", barmode='group', height=400)
+            st.plotly_chart(fig_eq, use_container_width=True)
 
-        # --- 6. REGULACIONES (Archivo Romanas) ---
-        st.subheader("📋 Estado de Regulaciones (Histórico Romanas)")
-        st.dataframe(df_rom.head(10), use_container_width=True)
+        # --- 6. SECCIÓN DE REGULACIONES (DETALLE) ---
+        if total_reg > 0:
+            st.warning(f"🚨 Se detectaron regulaciones activas para {prod_sel}")
+            r1, r2, r3 = st.columns(3)
+            r1.info(f"**Regulación 1**\n\n {reg1:.0f} Equipos")
+            r2.info(f"**Regulación 2**\n\n {reg2:.0f} Equipos")
+            r3.info(f"**Regulación 3**\n\n {reg3:.0f} Equipos")
 
         # --- 7. IA ANALYST ---
         st.divider()
-        if st.button("🚀 Generar Análisis de Cumplimiento con IA"):
+        if st.button("🚀 Generar Informe Operacional IA"):
             api_k = st.secrets.get("GEMINI_API_KEY")
             if api_k:
-                with st.spinner("Analizando brechas..."):
+                with st.spinner("Analizando brechas operativas..."):
                     prompt = f"""
                     Analiza el producto {prod_sel}. 
-                    Programado: {t_prog} Ton, Real: {t_real} Ton. 
-                    Cumplimiento: {cumpl_avg:.1f}%.
-                    Destinos afectados: {df_dest['Destino'].tolist()}.
-                    Tarea: Indica si el cumplimiento es aceptable y qué factor podría estar fallando según la brecha de equipos.
+                    Cumplimiento: {cump_tot:.1f}%. 
+                    Equipos Reales: {eq_real} de {eq_prog} programados.
+                    Regulaciones detectadas: {total_reg}.
+                    Tarea: Diagnostica por qué no se cumplió la meta y si las regulaciones están impactando el flujo.
                     """
                     res, err = call_gemini_api(prompt, api_k)
-                    st.info(res)
+                    st.markdown(f"### Análisis de la IA:\n{res}")
             else:
-                st.warning("Falta API Key.")
+                st.warning("API Key no configurada en Secrets.")
 
     except Exception as e:
-        st.error(f"Error al leer los archivos: {e}. Asegúrate que las pestañas y columnas coincidan.")
+        st.error(f"Error de procesamiento: {e}")
 else:
-    st.info("Sube ambos archivos para generar el dashboard por producto.")
+    st.info("👋 Por favor, carga los archivos 02 y 03 para activar el dashboard.")
