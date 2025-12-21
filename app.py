@@ -1,143 +1,111 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
-import json
-from datetime import datetime
 
-# --- 1. CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Gestión Logística SQM 2025", layout="wide", page_icon="🚛")
-
-def init_gemini():
-    if "GEMINI_API_KEY" in st.secrets:
-        return st.secrets["GEMINI_API_KEY"], None
-    return None, "⚠️ Configura GEMINI_API_KEY en los Secrets."
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="Dashboard Operacional SQM", layout="wide", page_icon="📈")
 
 def call_gemini_api(prompt, api_key, model="gemini-1.5-flash"):
-    model_name = model.replace("models/", "")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1200}
-    }
+    data = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.2}}
     try:
         response = requests.post(url, headers=headers, json=data, timeout=30)
-        if response.status_code != 200:
-            return None, f"Error {response.status_code}: {response.text}"
-        result = response.json()
-        return result['candidates'][0]['content']['parts'][0]['text'], None
-    except Exception as e:
-        return None, str(e)
+        return response.json()['candidates'][0]['content']['parts'][0]['text'], None
+    except:
+        return "Error al conectar con la IA", "Error"
 
-# --- 2. DICCIONARIO DE LIMPIEZA ---
-MAPE_EMPRESAS = {
-    "M AND Q SPA": "M&Q SPA", "M AND Q": "M&Q SPA", "M Q SPA": "M&Q SPA",
-    "MQ SPA": "M&Q SPA", "MANDQ SPA": "M&Q SPA", "MINING AND QUARRYING SPA": "M&Q SPA",
-    "M & Q SPA": "M&Q SPA", "M&Q": "M&Q SPA",
-    "MINING SERVICES AND DERIVATES": "M S & D SPA",
-    "M S AND D": "M S & D SPA", "M S D SPA": "M S & D SPA",
-    "MS&D SPA": "M S & D SPA", "M S & D": "M S & D SPA"
-}
-
-api_key, error_msg = init_gemini()
-
-st.title("📊 Control de Gestión Logística 2025 - SQM")
-st.markdown("---")
-
-# --- 3. CARGA DE ARCHIVOS DUAL ---
+# --- 2. CARGA DE ARCHIVOS ---
+st.title("📊 Control de Despachos y Cumplimiento")
 col_up1, col_up2 = st.columns(2)
 
 with col_up1:
-    file_romanas = st.file_uploader("📁 02.- Histórico Romanas (.xlsx)", type=["xlsx"])
-
+    file_romanas = st.file_uploader("📁 02.- Histórico Romanas", type=["xlsx"])
 with col_up2:
-    file_tablero = st.file_uploader("📁 03.- Tablero Despachos - Informe Operacional (.xlsm)", type=["xlsm"])
+    file_tablero = st.file_uploader("📁 03.- Tablero Despachos (XLSM)", type=["xlsm"])
 
-# --- 4. PROCESAMIENTO DE DATOS ---
-df_romanas = None
-df_tablero = None
-
-if file_romanas:
+if file_tablero and file_romanas:
     try:
-        df_romanas = pd.read_excel(file_romanas, engine='openpyxl')
-        df_romanas.columns = df_romanas.columns.str.strip()
-        df_romanas['FECHA'] = pd.to_datetime(df_romanas['FECHA'], dayfirst=True, errors='coerce')
-        df_romanas = df_romanas.dropna(subset=['FECHA'])
-        df_romanas['TONELAJE'] = pd.to_numeric(df_romanas['TONELAJE'], errors='coerce').fillna(0)
-        df_romanas['PRODUCTO'] = df_romanas['PRODUCTO'].astype(str).str.strip().str.upper()
-        if 'EMPRESA DE TRANSPORTE' in df_romanas.columns:
-            df_romanas['EMPRESA DE TRANSPORTE'] = df_romanas['EMPRESA DE TRANSPORTE'].astype(str).str.strip().str.upper().replace(MAPE_EMPRESAS)
-        st.sidebar.success("✅ Romanas cargado")
-    except Exception as e:
-        st.error(f"Error en Romanas: {e}")
+        # --- PROCESAMIENTO TABLERO (03) ---
+        # Definimos las columnas por posición (B=1, AF=31, AG=32, AH=33, AI=34, AJ=35, AK=36, AL=37)
+        cols_tablero = [1, 31, 32, 33, 34, 35, 36, 37] 
+        df_tab = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_tablero, engine='openpyxl')
+        
+        # Renombramos para facilitar el uso
+        df_tab.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Equipos_Prog', 'Equipos_Real', 'Cumplimiento']
+        df_tab['Fecha'] = pd.to_datetime(df_tab['Fecha'], errors='coerce')
+        df_tab = df_tab.dropna(subset=['Producto'])
 
-if file_tablero:
-    try:
-        # Cargamos .xlsm especificando motor openpyxl
-        df_tablero = pd.read_excel(file_tablero, engine='openpyxl')
-        df_tablero.columns = df_tablero.columns.str.strip()
-        st.sidebar.success("✅ Tablero Operacional cargado")
-    except Exception as e:
-        st.error(f"Error en Tablero: {e}")
+        # --- PROCESAMIENTO ROMANAS (02) ---
+        # Columnas W, X, Y son 22, 23, 24 (index 0)
+        df_rom = pd.read_excel(file_romanas, usecols=[0, 22, 23, 24], engine='openpyxl') 
+        df_rom.columns = ['Fecha_R', 'Regulacion_1', 'Regulacion_2', 'Regulacion_3']
 
-# --- 5. LÓGICA DE ANÁLISIS ---
-if df_romanas is not None:
-    # Filtros Temporales
-    f_max = df_romanas['FECHA'].max().date()
-    f_inicio = st.sidebar.date_input("Inicio Periodo", f_max)
-    f_fin = st.sidebar.date_input("Fin Periodo", f_max)
-    
-    mask = (df_romanas['FECHA'].dt.date >= f_inicio) & (df_romanas['FECHA'].dt.date <= f_fin)
-    df_view = df_romanas.loc[mask].copy()
+        # --- 3. FILTROS LATERALES ---
+        st.sidebar.header("🎯 Filtros de Dashboard")
+        lista_productos = sorted(df_tab['Producto'].unique())
+        prod_sel = st.sidebar.selectbox("Seleccionar Producto", lista_productos)
+        
+        # Filtrar datos por producto seleccionado
+        df_p = df_tab[df_tab['Producto'] == prod_sel]
 
-    if not df_view.empty:
-        # Benchmark Mensual
-        df_mes = df_romanas[(df_romanas['FECHA'].dt.month == f_inicio.month) & (df_romanas['FECHA'].dt.year == f_inicio.year)]
-        prom_diario_mes = df_mes.groupby(df_mes['FECHA'].dt.date)['TONELAJE'].sum().mean()
-        total_ton = df_view['TONELAJE'].sum()
-        rendimiento_actual = total_ton / ((f_fin - f_inicio).days + 1)
-        desviacion = ((rendimiento_actual - prom_diario_mes) / prom_diario_mes) * 100
+        # --- 4. VISUALIZACIÓN DE KPIs ---
+        st.header(f"Dashboard: {prod_sel}")
+        
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        t_prog = df_p['Ton_Prog'].sum()
+        t_real = df_p['Ton_Real'].sum()
+        cumpl_avg = (t_real / t_prog * 100) if t_prog > 0 else 0
+        
+        kpi1.metric("Ton. Programadas", f"{t_prog:,.1f}")
+        kpi2.metric("Ton. Reales", f"{t_real:,.1f}")
+        kpi3.metric("% Cumplimiento Total", f"{cumpl_avg:.1f}%")
+        kpi4.metric("Equipos Reales", f"{df_p['Equipos_Real'].sum():.0f}")
 
-        # KPIs Principales
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Total Tonelaje", f"{total_ton:,.0f} T")
-        c2.metric("Promedio Diario", f"{rendimiento_actual:,.1f} T", f"{desviacion:.1f}% vs Mes")
-        c3.metric("N° Viajes Romanas", len(df_view))
+        # --- 5. GRÁFICOS ---
+        col_g1, col_g2 = st.columns(2)
+        
+        with col_g1:
+            # Gráfico de Barras: Prog vs Real por Destino
+            df_dest = df_p.groupby('Destino')[['Ton_Prog', 'Ton_Real']].sum().reset_index()
+            fig_dest = go.Figure(data=[
+                go.Bar(name='Programado', x=df_dest['Destino'], y=df_dest['Ton_Prog'], marker_color='#A8D5BA'),
+                go.Bar(name='Real', x=df_dest['Destino'], y=df_dest['Ton_Real'], marker_color='#2E7D32')
+            ])
+            fig_dest.update_layout(title="Cumplimiento por Destino (Toneladas)", barmode='group')
+            st.plotly_chart(fig_dest, use_container_width=True)
 
-        # Visualización Dual
-        tab1, tab2, tab3 = st.tabs(["📊 Romanas", "📋 Tablero Operacional", "🤖 IA & Reportes"])
+        with col_g2:
+            # Evolución del Cumplimiento
+            fig_line = px.line(df_p, x='Fecha', y='Cumplimiento', title="Evolución % Cumplimiento Diario", markers=True)
+            fig_line.add_hline(y=100, line_dash="dash", line_color="red", annotation_text="Meta 100%")
+            st.plotly_chart(fig_line, use_container_width=True)
 
-        with tab1:
-            col_a, col_b = st.columns(2)
-            df_prod = df_view.groupby('PRODUCTO')['TONELAJE'].sum().reset_index().sort_values('TONELAJE', ascending=False)
-            col_a.plotly_chart(px.bar(df_prod, x='PRODUCTO', y='TONELAJE', title="Carga por Producto", color_continuous_scale='Greens'), use_container_width=True)
-            df_emp = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index().sort_values('TONELAJE', ascending=False)
-            col_b.plotly_chart(px.bar(df_emp, x='EMPRESA DE TRANSPORTE', y='TONELAJE', title="Ranking Empresas", color_continuous_scale='Blues'), use_container_width=True)
+        # --- 6. REGULACIONES (Archivo Romanas) ---
+        st.subheader("📋 Estado de Regulaciones (Histórico Romanas)")
+        st.dataframe(df_rom.head(10), use_container_width=True)
 
-        with tab2:
-            if df_tablero is not None:
-                st.subheader("Información del Tablero Operacional 2025")
-                st.dataframe(df_tablero, use_container_width=True)
+        # --- 7. IA ANALYST ---
+        st.divider()
+        if st.button("🚀 Generar Análisis de Cumplimiento con IA"):
+            api_k = st.secrets.get("GEMINI_API_KEY")
+            if api_k:
+                with st.spinner("Analizando brechas..."):
+                    prompt = f"""
+                    Analiza el producto {prod_sel}. 
+                    Programado: {t_prog} Ton, Real: {t_real} Ton. 
+                    Cumplimiento: {cumpl_avg:.1f}%.
+                    Destinos afectados: {df_dest['Destino'].tolist()}.
+                    Tarea: Indica si el cumplimiento es aceptable y qué factor podría estar fallando según la brecha de equipos.
+                    """
+                    res, err = call_gemini_api(prompt, api_k)
+                    st.info(res)
             else:
-                st.info("Sube el archivo .xlsm para visualizar el tablero operacional.")
+                st.warning("Falta API Key.")
 
-        with tab3:
-            st.subheader("Generación de Informes Ejecutivos")
-            col_b1, col_b2 = st.columns(2)
-            
-            if col_b1.button("🔍 Diagnóstico Técnico", use_container_width=True):
-                with st.spinner("Analizando..."):
-                    ctx = f"Analiza: Desviación de {desviacion:.1f}% vs promedio mensual. Producto top: {df_prod.iloc[0]['PRODUCTO']}. Genera un análisis profesional para SQM."
-                    res, err = call_gemini_api(ctx, api_key)
-                    st.markdown(res if not err else err)
-
-            if col_b2.button("📧 Preparar Correo Gerencia", type="primary", use_container_width=True):
-                with st.spinner("Redactando..."):
-                    ctx_mail = f"Redacta un correo para Gerencia de SQM. Datos: {total_ton}T totales, {len(df_view)} viajes, periodo {f_inicio} al {f_fin}. Menciona la desviación del {desviacion:.1f}% vs promedio mensual."
-                    res, err = call_gemini_api(ctx_mail, api_key)
-                    st.text_area("Copia el correo desde aquí:", res, height=350)
-    else:
-        st.warning("No hay datos para las fechas seleccionadas.")
+    except Exception as e:
+        st.error(f"Error al leer los archivos: {e}. Asegúrate que las pestañas y columnas coincidan.")
 else:
-    st.info("👋 Por favor, carga los archivos Excel para comenzar el análisis.")
+    st.info("Sube ambos archivos para generar el dashboard por producto.")
