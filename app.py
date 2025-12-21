@@ -2,31 +2,32 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import openai
+import google.generativeai as genai
 from datetime import datetime, timedelta
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="Reporte Operacional SQM", layout="wide", page_icon="📊")
 
 # Inicialización segura de la IA
-def init_openai():
-    """Inicializa y valida la conexión con OpenAI"""
-    if "OPENAI_API_KEY" in st.secrets:
+def init_gemini():
+    """Inicializa y valida la conexión con Gemini"""
+    if "GEMINI_API_KEY" in st.secrets:
         try:
-            openai.api_key = st.secrets["OPENAI_API_KEY"]
-            return True, None
+            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            return model, None
         except Exception as e:
-            return False, f"Error de configuración de IA: {str(e)}"
+            return None, f"Error de configuración de IA: {str(e)}"
     else:
-        return False, "⚠️ Falta la API Key en los Secrets de Streamlit."
+        return None, "⚠️ Falta la API Key en los Secrets de Streamlit."
 
-api_configured, error_msg = init_openai()
-if error_msg:
+model, error_msg = init_gemini()
+if error_msg and model is None:
     st.sidebar.warning(error_msg)
 
 # Título principal
 st.title("📊 Análisis de Despacho por Producto - SQM")
-st.markdown("**Sistema de análisis operacional con IA integrada (ChatGPT)**")
+st.markdown("**Sistema de análisis operacional con IA integrada (Google Gemini)**")
 st.divider()
 
 # --- 2. CARGA DE DATOS ---
@@ -201,8 +202,8 @@ if uploaded_file:
             
             st.divider()
             
-            # --- 6. ANÁLISIS CON IA (OPENAI/CHATGPT) ---
-            st.subheader("🤖 Análisis Inteligente con ChatGPT")
+            # --- 6. ANÁLISIS CON IA (GEMINI) ---
+            st.subheader("🤖 Análisis Inteligente con Google Gemini")
             
             col_ai1, col_ai2, col_ai3 = st.columns([2, 1, 1])
             
@@ -213,19 +214,28 @@ if uploaded_file:
                 )
             
             with col_ai3:
-                modelo = st.selectbox(
+                modelo_nombre = st.selectbox(
                     "Modelo",
-                    ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
-                    help="GPT-4o es más preciso, GPT-3.5-turbo es más rápido y económico"
+                    ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"],
+                    format_func=lambda x: {
+                        "gemini-1.5-flash": "Flash (Rápido y Gratis)",
+                        "gemini-1.5-pro": "Pro (Más Potente)",
+                        "gemini-1.0-pro": "1.0 Pro (Estable)"
+                    }[x],
+                    help="Flash es gratis y rápido, Pro es más preciso"
                 )
             
             with col_ai1:
                 if st.button("🚀 Generar Análisis con IA", type="primary", use_container_width=True):
-                    if not api_configured:
-                        st.error("❌ La IA no está configurada correctamente. Verifica la API Key de OpenAI.")
+                    if model is None:
+                        st.error("❌ La IA no está configurada correctamente. Verifica la API Key de Gemini.")
                     else:
                         try:
-                            with st.spinner(f"🔍 Analizando datos con {modelo}..."):
+                            with st.spinner(f"🔍 Analizando datos con Gemini..."):
+                                # Actualizar modelo si cambió
+                                if modelo_nombre != 'gemini-1.5-flash':
+                                    model = genai.GenerativeModel(modelo_nombre)
+                                
                                 # Preparar contexto más rico
                                 estadisticas = {
                                     'total_tonelaje': float(total_ton),
@@ -250,7 +260,7 @@ Estadísticas del período ({estadisticas['fecha_inicio']} a {estadisticas['fech
 Top 5 productos por tonelaje:
 {df_prod.head().to_string(index=False)}
 
-Proporciona un resumen ejecutivo conciso (máximo 150 palabras) sobre el desempeño operacional."""
+Proporciona un resumen ejecutivo conciso (máximo 150 palabras) sobre el desempeño operacional en español."""
 
                                 elif tipo_analisis == "Análisis Detallado":
                                     prompt = f"""Como experto en logística, analiza en detalle estos datos de despacho de SQM:
@@ -261,7 +271,7 @@ Datos: {estadisticas['total_tonelaje']:,.0f} toneladas en {estadisticas['num_via
 Distribución por producto:
 {df_prod.to_string(index=False)}
 
-Proporciona:
+Proporciona en español:
 1. Análisis de eficiencia operativa
 2. Identificación de patrones
 3. Productos críticos
@@ -278,46 +288,35 @@ Métricas clave:
 Productos principales:
 {df_prod.head(5).to_string(index=False)}
 
-Proporciona 3-4 recomendaciones específicas y accionables para optimizar las operaciones."""
+Proporciona en español 3-4 recomendaciones específicas y accionables para optimizar las operaciones."""
 
                                 else:  # Comparativa
                                     prompt = f"""Analiza comparativamente el desempeño de estos productos de SQM:
 
 {df_prod.to_string(index=False)}
 
-Identifica:
+Identifica en español:
 1. Productos de mayor/menor volumen
 2. Posibles desequilibrios operacionales
 3. Oportunidades de consolidación
 4. Productos que requieren atención especial"""
                                 
-                                # Generar respuesta con OpenAI
-                                response = openai.ChatCompletion.create(
-                                    model=modelo,
-                                    messages=[
-                                        {
-                                            "role": "system", 
-                                            "content": "Eres un analista experto en operaciones logísticas y minería. Proporciona análisis claros, concisos y accionables en español."
-                                        },
-                                        {
-                                            "role": "user", 
-                                            "content": prompt
-                                        }
-                                    ],
-                                    temperature=0.7,
-                                    max_tokens=1000
-                                )
+                                # Generar respuesta con Gemini
+                                response = model.generate_content(prompt)
                                 
                                 # Mostrar resultado
                                 st.markdown("### 📋 Resultado del Análisis")
-                                st.markdown(response.choices[0].message.content)
+                                st.markdown(response.text)
                                 
                                 # Información adicional
                                 col_info1, col_info2, col_info3 = st.columns(3)
                                 with col_info1:
-                                    st.caption(f"🤖 Modelo: {modelo}")
+                                    st.caption(f"🤖 Modelo: {modelo_nombre}")
                                 with col_info2:
-                                    st.caption(f"📝 Tokens usados: {response.usage.total_tokens}")
+                                    if hasattr(response, 'usage_metadata'):
+                                        st.caption(f"📝 Tokens: {response.usage_metadata.total_token_count}")
+                                    else:
+                                        st.caption("📝 Análisis completado")
                                 with col_info3:
                                     st.caption(f"⚡ Tipo: {tipo_analisis}")
                                 
@@ -330,18 +329,44 @@ Identifica:
                             st.error("❌ Error al generar análisis con IA")
                             with st.expander("🔍 Ver detalles del error"):
                                 st.code(str(ia_err))
-                                st.info("""
+                                
+                                # Detectar tipo de error
+                                error_str = str(ia_err).lower()
+                                if "api key" in error_str or "invalid" in error_str:
+                                    st.warning("""
+**🔑 Error de API Key**
+- Tu API Key es inválida o está mal configurada
+- Verifica que la copiaste correctamente en los Secrets
+- Asegúrate de incluir el prefijo completo
+                                    """)
+                                elif "quota" in error_str or "limit" in error_str:
+                                    st.warning("""
+**📊 Límite de Cuota**
+- Has alcanzado el límite de uso gratuito
+- Gemini Flash tiene límites generosos pero no ilimitados
+- Espera unos minutos e intenta nuevamente
+- Considera usar gemini-1.5-flash si usas Pro
+                                    """)
+                                elif "region" in error_str or "blocked" in error_str:
+                                    st.warning("""
+**🌍 Restricción Regional**
+- Gemini puede tener restricciones en tu región
+- Intenta usar una VPN si es necesario
+- Verifica en: https://ai.google.dev/available_regions
+                                    """)
+                                else:
+                                    st.info("""
 **Posibles causas:**
 - API Key inválida o expirada
-- Límite de cuota excedido (verifica tu saldo en OpenAI)
+- Límite de cuota excedido
+- Restricciones geográficas
 - Problema de conectividad
-- Modelo no disponible en tu cuenta
 
 **Solución:** 
 1. Verifica tu API Key en los Secrets de Streamlit
-2. Revisa tu saldo en platform.openai.com/usage
-3. Intenta con gpt-3.5-turbo si tienes problemas con GPT-4
-                                """)
+2. Obtén una API Key gratis en: https://makersuite.google.com/app/apikey
+3. Gemini Flash es completamente GRATIS
+                                    """)
             
             st.divider()
             
@@ -398,35 +423,49 @@ else:
     1. Sube el archivo Excel con los datos de despachos
     2. Usa los filtros en la barra lateral para ajustar el análisis
     3. Explora las diferentes visualizaciones en las pestañas
-    4. Genera análisis inteligentes con ChatGPT para obtener insights
+    4. Genera análisis inteligentes con Google Gemini para obtener insights
     
     ### 📊 Características:
     - ✅ Análisis de KPIs operacionales
     - ✅ Visualizaciones interactivas
-    - ✅ Análisis con IA (ChatGPT GPT-4/GPT-3.5)
+    - ✅ Análisis con IA (Google Gemini)
     - ✅ Exportación de datos
     - ✅ Filtros avanzados
-    - ✅ Selección de modelos de IA
+    - ✅ **GRATIS**: Gemini Flash es completamente gratuito
     """)
     
     # Mostrar estado de la API
     with st.expander("🔧 Estado de configuración"):
-        if api_configured:
-            st.success("✅ API de OpenAI configurada correctamente")
+        if model:
+            st.success("✅ API de Google Gemini configurada correctamente")
         else:
-            st.error("❌ API de OpenAI no configurada")
+            st.error("❌ API de Google Gemini no configurada")
             st.markdown("""
-### Para configurar la API de OpenAI:
+### Para configurar la API de Google Gemini:
 
-1. Obtén tu API Key en: https://platform.openai.com/api-keys
-2. En Streamlit Cloud, ve a **Settings > Secrets**
-3. Agrega el siguiente código:
+1. Obtén tu API Key **GRATIS** en: https://makersuite.google.com/app/apikey
+   - O también en: https://aistudio.google.com/app/apikey
+2. Crea una cuenta de Google (si no tienes)
+3. Genera una API Key (es instantáneo y gratis)
+4. En Streamlit Cloud, ve a **Settings > Secrets**
+5. Agrega el siguiente código:
 
 ```toml
-OPENAI_API_KEY = "sk-tu-api-key-aqui"
+GEMINI_API_KEY = "AIzaSy-tu-api-key-aqui"
 ```
 
-4. Guarda y reinicia la app
+6. Guarda y reinicia la app
 
-**Nota:** Asegúrate de tener saldo disponible en tu cuenta de OpenAI.
+### ✅ Ventajas de Google Gemini:
+- **🆓 Completamente GRATIS** (Gemini Flash)
+- **⚡ Muy rápido** (especialmente Flash)
+- **🌍 Disponible globalmente**
+- **📊 Excelente para análisis de datos**
+- **💪 Modelos Pro disponibles** (más potentes)
+- **🎁 Límites generosos** en el plan gratuito
+
+### 📋 Modelos disponibles:
+- **gemini-1.5-flash**: Gratis, rápido, ideal para la mayoría de casos
+- **gemini-1.5-pro**: Más potente, también gratis con límites
+- **gemini-1.0-pro**: Versión estable anterior
             """)
