@@ -14,7 +14,7 @@ def init_gemini():
     if "GEMINI_API_KEY" in st.secrets:
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-pro')
             return model, None
         except Exception as e:
             return None, f"Error de configuración de IA: {str(e)}"
@@ -216,13 +216,12 @@ if uploaded_file:
             with col_ai3:
                 modelo_nombre = st.selectbox(
                     "Modelo",
-                    ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"],
+                    ["gemini-pro", "gemini-pro-vision"],
                     format_func=lambda x: {
-                        "gemini-1.5-flash": "Flash (Rápido y Gratis)",
-                        "gemini-1.5-pro": "Pro (Más Potente)",
-                        "gemini-1.0-pro": "1.0 Pro (Estable)"
+                        "gemini-pro": "Gemini Pro (Recomendado)",
+                        "gemini-pro-vision": "Gemini Pro Vision (Con imágenes)"
                     }[x],
-                    help="Flash es gratis y rápido, Pro es más preciso"
+                    help="Gemini Pro es el modelo estándar y gratuito"
                 )
             
             with col_ai1:
@@ -233,7 +232,7 @@ if uploaded_file:
                         try:
                             with st.spinner(f"🔍 Analizando datos con Gemini..."):
                                 # Actualizar modelo si cambió
-                                if modelo_nombre != 'gemini-1.5-flash':
+                                if modelo_nombre != 'gemini-pro':
                                     model = genai.GenerativeModel(modelo_nombre)
                                 
                                 # Preparar contexto más rico
@@ -465,7 +464,6 @@ GEMINI_API_KEY = "AIzaSy-tu-api-key-aqui"
 - **🎁 Límites generosos** en el plan gratuito
 
 ### 📋 Modelos disponibles:
-- **gemini-1.5-flash**: Gratis, rápido, ideal para la mayoría de casos
-- **gemini-1.5-pro**: Más potente, también gratis con límites
-- **gemini-1.0-pro**: Versión estable anterior
+- **gemini-pro**: Modelo estándar, gratis, ideal para análisis de texto
+- **gemini-pro-vision**: Para análisis que incluyan imágenes
             """)
