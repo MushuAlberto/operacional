@@ -3,95 +3,96 @@ import pandas as pd
 import plotly.express as px
 import google.generativeai as genai
 
-# --- CONFIGURACIÓN DE LA APP ---
-st.set_page_config(page_title="Dashboard Operativo SQM", layout="wide")
+# --- CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(page_title="Dashboard Operacional - Histórico Romanas", layout="wide")
 
-# Configuración de la IA (Gemini)
-# Reemplaza 'TU_API_KEY' con tu clave real de Google AI Studio
-# Configuración segura usando los Secrets de Streamlit
-import streamlit as st
-
+# Configuración de IA (Gemini) desde Secrets
 if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-pro')
 else:
-    st.error("Falta la configuración de la API Key en los Secrets de Streamlit.")
-model = genai.GenerativeModel('gemini-pro')
+    st.error("⚠️ Configura la GEMINI_API_KEY en los Secrets de Streamlit.")
 
-# Estilo CSS para mejorar la estética
+# --- ESTILOS PERSONALIZADOS ---
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    div.stButton > button { background-color: #558b2f; color: white; border-radius: 5px; }
+    .metric-container { background-color: #ffffff; padding: 20px; border-radius: 10px; border-left: 5px solid #558b2f; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ENCABEZADO ---
-st.title("📊 Control de Gestión: Transporte de Litio")
+st.title("📊 Control de Gestión: Histórico de Romanas")
 st.markdown("---")
 
-uploaded_file = st.file_uploader("Sube el archivo de operaciones diario", type=["xlsx", "csv"])
+# --- CARGA DE DATOS ---
+uploaded_file = st.file_uploader("Sube el archivo '02.- Histórico Romanas'", type=["xlsx", "csv"])
 
 if uploaded_file:
-    # Carga de datos
-    df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
+    # Leer el archivo (usando los nombres de columnas reales)
+    if uploaded_file.name.endswith('.xlsx'):
+        df = pd.read_excel(uploaded_file)
+    else:
+        df = pd.read_csv(uploaded_file)
+
+    # Limpieza básica: Asegurar que Fecha sea datetime y Tonelaje numérico
+    df['FECHA'] = pd.to_datetime(df['FECHA'])
+    df['TONELAJE'] = pd.to_numeric(df['TONELAJE'], errors='coerce')
+
+    # --- FILTROS LATERALES ---
+    st.sidebar.header("Filtros del Reporte")
+    fecha_sel = st.sidebar.date_input("Selecciona Fecha", df['FECHA'].max())
+    productos = st.sidebar.multiselect("Filtrar por Producto", df['PRODUCTO'].unique(), default=df['PRODUCTO'].unique())
     
-    # 1. KPIs MAESTROS (Lo que el gerente ve al abrir)
-    cumplimiento_global = (df['Desp_Ton'].sum() / df['Prog_Ton'].sum()) * 100
-    ton_totales = df['Desp_Ton'].sum()
-    eficiencia_promedio = df['Promedio'].mean()
+    # Aplicar filtros
+    df_filtrado = df[(df['FECHA'].dt.date == fecha_sel) & (df['PRODUCTO'].isin(productos))]
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Cumplimiento Global", f"{cumplimiento_global:.1f}%", f"{cumplimiento_global-100:.1f}%")
-    c2.metric("Total Despachado", f"{ton_totales:,.0f} Ton")
-    c3.metric("Promedio Tonelaje/Viaje", f"{eficiencia_promedio:.2f} T")
+    if not df_filtrado.empty:
+        # --- BLOQUE 1: KPIs MAESTROS ---
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("Tonelaje Total Despachado", f"{df_filtrado['TONELAJE'].sum():,.2f} Ton")
+        with c2:
+            st.metric("Total Viajes (Registros)", len(df_filtrado))
+        with c3:
+            st.metric("Promedio Ton por Viaje", f"{df_filtrado['TONELAJE'].mean():,.2f} Ton")
 
-    # 2. SECCIÓN VISUAL (Gráficos Interactivos)
-    st.markdown("### 📈 Análisis de Cumplimiento por Área")
-    col_chart, col_data = st.columns([2, 1])
+        st.markdown("---")
 
-    with col_chart:
-        # Gráfico de barras comparativo
-        fig = px.bar(df, x='Area', y=['Prog_Ton', 'Desp_Ton'], 
-                     barmode='group', 
-                     title="Programado vs. Despachado",
-                     color_discrete_sequence=['#A5D6A7', '#2E7D32']) # Tonos de verde SQM
-        st.plotly_chart(fig, use_container_width=True)
+        # --- BLOQUE 2: GRÁFICOS PARA GERENCIA ---
+        col_left, col_right = st.columns(2)
 
-    with col_data:
-        # Tabla resumen rápida
-        st.write("**Alertas de Desviación:**")
-        desviaciones = df[df['Cumplimiento'] < 90][['Area', 'Cumplimiento']]
-        if not desviaciones.empty:
-            st.warning(f"Hay {len(desviaciones)} áreas por debajo del 90% de cumplimiento.")
-            st.table(desviaciones)
-        else:
-            st.success("Todas las áreas cumplen con el 90%+")
+        with col_left:
+            st.subheader("🚛 Tonelaje por Empresa de Transporte")
+            fig_empresa = px.bar(df_filtrado.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index(), 
+                                 x='EMPRESA DE TRANSPORTE', y='TONELAJE',
+                                 color_discrete_sequence=['#2E7D32'])
+            st.plotly_chart(fig_empresa, use_container_width=True)
 
-    # 3. ANÁLISIS ESTRATÉGICO CON IA
-    st.markdown("---")
-    st.subheader("🤖 Resumen Ejecutivo Inteligente")
-    
-    if st.button("Generar Informe con IA"):
-        with st.spinner("Analizando datos operativos con Gemini..."):
-            # Preparamos los datos para la IA
-            data_summary = df[['Area', 'Producto', 'Cumplimiento', 'Tiempo_Int', 'Observaciones']].to_string()
-            prompt = f"""
-            Actúa como un Gerente de Operaciones Logísticas. 
-            Analiza los siguientes datos de despacho de litio y redacta un resumen ejecutivo de 3 puntos:
-            1. Cuál fue el desempeño general.
-            2. Identifica el cuello de botella principal basado en los tiempos y observaciones.
-            3. Da una recomendación estratégica para el turno de mañana.
-            
-            Datos: {data_summary}
-            """
-            
-            response = model.generate_content(prompt)
-            st.info(response.text)
+        with col_right:
+            st.subheader("📦 Distribución por Producto")
+            fig_prod = px.pie(df_filtrado, values='TONELAJE', names='PRODUCTO', 
+                              hole=0.4, color_discrete_sequence=px.colors.sequential.Greens_r)
+            st.plotly_chart(fig_prod, use_container_width=True)
 
-    # 4. DETALLE OPERATIVO (Expandible para no saturar)
-    with st.expander("🔍 Ver detalle operativo (Formato Tabla Original)"):
-        st.dataframe(df.style.highlight_max(axis=0, subset=['Tiempo_Int'], color='#ffcdd2'))
+        # --- BLOQUE 3: ANÁLISIS DE IA ---
+        st.markdown("---")
+        st.subheader("🤖 Resumen Analítico de la Jornada")
+        if st.button("Generar Informe Ejecutivo"):
+            with st.spinner("La IA está analizando los datos..."):
+                resumen_datos = df_filtrado[['PRODUCTO', 'DESTINO', 'TONELAJE', 'EMPRESA DE TRANSPORTE']].head(20).to_string()
+                prompt = f"""
+                Analiza como un experto logístico estos datos de transporte: {resumen_datos}. 
+                Indica qué empresa de transporte movió más carga, qué destino es el principal y 
+                genera una conclusión sobre la eficiencia del día {fecha_sel}.
+                """
+                response = model.generate_content(prompt)
+                st.info(response.text)
+
+        # --- BLOQUE 4: TABLA DETALLADA ---
+        with st.expander("🔍 Ver registros detallados"):
+            st.dataframe(df_filtrado[['FECHA', 'PRODUCTO', 'DESTINO', 'TONELAJE', 'EMPRESA DE TRANSPORTE']])
+
+    else:
+        st.warning("No hay datos para la fecha y productos seleccionados.")
 
 else:
-    st.info("👋 Bienvenido. Por favor sube el archivo de datos para comenzar el análisis.")
+    st.info("Esperando carga del archivo '02.- Histórico Romanas'...")
