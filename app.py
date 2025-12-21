@@ -15,21 +15,22 @@ if "GEMINI_API_KEY" in st.secrets:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-pro')
 else:
-    st.warning("⚠️ IA Desactivada: Configura GEMINI_API_KEY en los Secrets de Streamlit.")
+    st.warning("⚠️ IA Desactivada: Configura GEMINI_API_KEY en los Secrets.")
 
-# --- 3. DICCIONARIO DE ESTANDARIZACIÓN DE EMPRESAS ---
+# --- 3. DICCIONARIO DE ESTANDARIZACIÓN ACTUALIZADO ---
+# Ahora todas las variantes de M S & D apuntan al nombre largo solicitado
 MAPE_EMPRESAS = {
     "JORQUERA TRANSPORTE S A": "JORQUERA TRANSPORTE S. A.",
-    "MINING SERVICES AND DERIVATES": "M S & D SPA",
-    "MINING SERVICES AND DERIVATES SPA": "M S & D SPA",
-    "M S AND D": "M S & D SPA",
-    "M S AND D SPA": "M S & D SPA",
-    "MSANDD SPA": "M S & D SPA",
-    "M S D": "M S & D SPA",
-    "M S D SPA": "M S & D SPA",
-    "M S & D": "M S & D SPA",
-    "M S & D SPA": "M S & D SPA",
-    "MS&D SPA": "M S & D SPA",
+    "MINING SERVICES AND DERIVATES": "MINING SERVICES AND DERIVATES SPA",
+    "MINING SERVICES AND DERIVATES SPA": "MINING SERVICES AND DERIVATES SPA",
+    "M S AND D": "MINING SERVICES AND DERIVATES SPA",
+    "M S AND D SPA": "MINING SERVICES AND DERIVATES SPA",
+    "MSANDD SPA": "MINING SERVICES AND DERIVATES SPA",
+    "M S D": "MINING SERVICES AND DERIVATES SPA",
+    "M S D SPA": "MINING SERVICES AND DERIVATES SPA",
+    "M S & D": "MINING SERVICES AND DERIVATES SPA",
+    "M S & D SPA": "MINING SERVICES AND DERIVATES SPA",
+    "MS&D SPA": "MINING SERVICES AND DERIVATES SPA",
     "M AND Q SPA": "M&Q SPA",
     "M AND Q": "M&Q SPA",
     "M Q SPA": "M&Q SPA",
@@ -45,7 +46,7 @@ MAPE_EMPRESAS = {
 
 # --- 4. ENCABEZADO ---
 st.title("📊 Control de Gestión: Histórico de Romanas")
-st.markdown("### Reporte Operacional de Despacho de Litio")
+st.markdown("### Reporte Operacional de Despacho")
 st.divider()
 
 # --- 5. CARGA Y LIMPIEZA DE DATOS ---
@@ -53,91 +54,70 @@ uploaded_file = st.file_uploader("Subir archivo: 02.- Histórico Romanas", type=
 
 if uploaded_file:
     try:
-        if uploaded_file.name.endswith('.xlsx'):
-            df = pd.read_excel(uploaded_file)
-        else:
-            df = pd.read_csv(uploaded_file)
-
-        # Limpieza de nombres de columnas
+        df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
+        
+        # Limpieza de columnas y formatos
         df.columns = df.columns.str.strip()
-
-        # Conversión de Fechas (Solución a errores previos)
         df['FECHA'] = pd.to_datetime(df['FECHA'], dayfirst=True, errors='coerce')
         df = df.dropna(subset=['FECHA'])
-        
-        # Conversión de Tonelaje
         df['TONELAJE'] = pd.to_numeric(df['TONELAJE'], errors='coerce').fillna(0)
 
-        # --- ESTANDARIZACIÓN DE EMPRESAS ---
-        # Pasamos a mayúsculas y quitamos espacios para asegurar el cruce con el diccionario
+        # --- PROCESO DE LIMPIEZA DE EMPRESAS ---
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].astype(str).str.strip().str.upper()
         df['EMPRESA DE TRANSPORTE'] = df['EMPRESA DE TRANSPORTE'].replace(MAPE_EMPRESAS)
 
-        # --- 6. FILTROS LATERALES ---
-        st.sidebar.header("⚙️ Panel de Filtros")
+        # --- 6. FILTROS ---
+        st.sidebar.header("⚙️ Filtros")
         max_date = df['FECHA'].max().date()
-        fecha_sel = st.sidebar.date_input("Seleccionar Fecha", max_date)
+        fecha_sel = st.sidebar.date_input("Fecha", max_date)
         
-        lista_productos = sorted(df['PRODUCTO'].unique())
-        productos_sel = st.sidebar.multiselect("Filtrar Productos", lista_productos, default=lista_productos)
+        lista_prod = sorted(df['PRODUCTO'].unique())
+        prod_sel = st.sidebar.multiselect("Productos", lista_prod, default=lista_prod)
 
-        mask = (df['FECHA'].dt.date == fecha_sel) & (df['PRODUCTO'].isin(productos_sel))
+        mask = (df['FECHA'].dt.date == fecha_sel) & (df['PRODUCTO'].isin(prod_sel))
         df_view = df.loc[mask]
 
         if not df_view.empty:
-            # --- 7. DASHBOARD EJECUTIVO (KPIs) ---
-            ton_total = df_view['TONELAJE'].sum()
-            total_viajes = len(df_view)
-            prom_ton = df_view['TONELAJE'].mean()
-
-            kpi1, kpi2, kpi3 = st.columns(3)
-            kpi1.metric("Tonelaje Total", f"{ton_total:,.2f} Ton")
-            kpi2.metric("Total de Viajes", f"{total_viajes}")
-            kpi3.metric("Promedio Carga", f"{prom_ton:,.2f} Ton/v")
+            # --- 7. KPIs ---
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Tonelaje Total", f"{df_view['TONELAJE'].sum():,.2f} Ton")
+            c2.metric("Total Viajes", f"{len(df_view)}")
+            c3.metric("Promedio Carga", f"{df_view['TONELAJE'].mean():,.2f} Ton/v")
 
             st.markdown("---")
 
-            # --- 8. GRÁFICO DE EMPRESAS (ESTANDARIZADO) ---
-            st.subheader("🚛 Desempeño por Empresa")
+            # --- 8. GRÁFICO DE EMPRESAS (CON NUEVO NOMBRE) ---
+            st.subheader("🚛 Desempeño por Empresa (Estandarizado)")
             
-            # Agrupamos por los nombres ya limpios y ordenamos de mayor a menor
-            resumen_empresa = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index()
-            resumen_empresa = resumen_empresa.sort_values(by='TONELAJE', ascending=False)
-            
+            df_grouped = df_view.groupby('EMPRESA DE TRANSPORTE')['TONELAJE'].sum().reset_index()
+            df_grouped = df_grouped.sort_values(by='TONELAJE', ascending=False)
+
             fig_emp = px.bar(
-                resumen_empresa,
-                x='EMPRESA DE TRANSPORTE', y='TONELAJE',
+                df_grouped,
+                x='EMPRESA DE TRANSPORTE', 
+                y='TONELAJE',
+                text_auto='.2s',
                 color='TONELAJE',
                 color_continuous_scale='Greens',
-                text_auto='.2s',
-                labels={'TONELAJE': 'Ton Totales', 'EMPRESA DE TRANSPORTE': 'Empresa'}
+                labels={'TONELAJE': 'Tonelaje Total', 'EMPRESA DE TRANSPORTE': 'Empresa'}
             )
+            
             fig_emp.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig_emp, use_container_width=True)
 
-            # --- 9. ANÁLISIS ESTRATÉGICO CON IA ---
-            st.markdown("---")
-            if st.button("🤖 Generar Informe Ejecutivo con IA"):
-                with st.spinner("La IA está analizando los datos consolidados..."):
-                    resumen_ia = resumen_empresa.to_string(index=False)
-                    prompt = f"""
-                    Analiza estos datos de transporte: {resumen_ia}. 
-                    1. Resume el desempeño de las empresas.
-                    2. Identifica la principal transportista hoy.
-                    3. Sugiere una recomendación de eficiencia.
-                    """
+            # --- 9. IA ---
+            if st.button("🤖 Generar Resumen Analítico"):
+                with st.spinner("Analizando..."):
+                    resumen = df_grouped.to_string(index=False)
+                    prompt = f"Analiza estos datos de transporte: {resumen}. Indica el desempeño de las empresas, especialmente de MINING SERVICES AND DERIVATES SPA."
                     response = model.generate_content(prompt)
                     st.info(response.text)
 
-            # --- 10. DETALLE DE DATOS ---
-            with st.expander("🔍 Ver registros detallados"):
-                st.dataframe(df_view[['FECHA', 'PRODUCTO', 'DESTINO', 'TONELAJE', 'EMPRESA DE TRANSPORTE']], use_container_width=True)
-        
+            with st.expander("🔍 Ver registros"):
+                st.dataframe(df_view)
         else:
-            st.warning("No hay datos para esta selección de fecha o productos.")
-
+            st.warning("No hay datos para esta selección.")
     except Exception as e:
-        st.error(f"Error al procesar el archivo: {e}")
-
+        st.error(f"Error: {e}")
 else:
-    st.info("👋 Por favor, sube el archivo '02.- Histórico Romanas' para comenzar el análisis.")
+    st.info("👋 Sube el archivo para comenzar.")
