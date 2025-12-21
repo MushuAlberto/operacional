@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from openai import OpenAI
+import openai
 from datetime import datetime, timedelta
 
 # --- 1. CONFIGURACIÓN ---
@@ -13,15 +13,14 @@ def init_openai():
     """Inicializa y valida la conexión con OpenAI"""
     if "OPENAI_API_KEY" in st.secrets:
         try:
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-            # Test simple para verificar la conexión
-            return client, None
+            openai.api_key = st.secrets["OPENAI_API_KEY"]
+            return True, None
         except Exception as e:
-            return None, f"Error de configuración de IA: {str(e)}"
+            return False, f"Error de configuración de IA: {str(e)}"
     else:
-        return None, "⚠️ Falta la API Key en los Secrets de Streamlit."
+        return False, "⚠️ Falta la API Key en los Secrets de Streamlit."
 
-client, error_msg = init_openai()
+api_configured, error_msg = init_openai()
 if error_msg:
     st.sidebar.warning(error_msg)
 
@@ -222,7 +221,7 @@ if uploaded_file:
             
             with col_ai1:
                 if st.button("🚀 Generar Análisis con IA", type="primary", use_container_width=True):
-                    if client is None:
+                    if not api_configured:
                         st.error("❌ La IA no está configurada correctamente. Verifica la API Key de OpenAI.")
                     else:
                         try:
@@ -293,7 +292,7 @@ Identifica:
 4. Productos que requieren atención especial"""
                                 
                                 # Generar respuesta con OpenAI
-                                response = client.chat.completions.create(
+                                response = openai.ChatCompletion.create(
                                     model=modelo,
                                     messages=[
                                         {
@@ -412,7 +411,7 @@ else:
     
     # Mostrar estado de la API
     with st.expander("🔧 Estado de configuración"):
-        if client:
+        if api_configured:
             st.success("✅ API de OpenAI configurada correctamente")
         else:
             st.error("❌ API de OpenAI no configurada")
