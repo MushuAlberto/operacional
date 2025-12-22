@@ -279,33 +279,44 @@ if file_tablero:
                 col_chart1, col_chart2 = st.columns([3, 2])
                 
                 with col_chart1:
-                    # Gráfico Combinado (Barras + Líneas) - MÁS GRANDE
-                    fig_combinado = go.Figure()
+                    # Gráfico Combinado (Barras AGRUPADAS + Líneas)
+                    from plotly.subplots import make_subplots
                     
-                    # Barras para Toneladas
-                    fig_combinado.add_trace(go.Bar(
-                        name='Ton. Real',
-                        x=['Toneladas'],
-                        y=[t_real],
-                        marker_color='#2E7D32',
-                        text=[f"{t_real:,.0f}"],
-                        textposition='outside',
-                        yaxis='y',
-                        offsetgroup=0,
-                        width=0.4
-                    ))
+                    fig_combinado = make_subplots(
+                        rows=1, cols=2,
+                        column_widths=[0.45, 0.45],
+                        specs=[[{"secondary_y": False}, {"secondary_y": True}]],
+                        subplot_titles=("Toneladas", "Equipos"),
+                        horizontal_spacing=0.15
+                    )
                     
-                    fig_combinado.add_trace(go.Bar(
-                        name='Ton. Planificado',
-                        x=['Toneladas'],
-                        y=[t_prog],
-                        marker_color='#A8D5BA',
-                        text=[f"{t_prog:,.0f}"],
-                        textposition='outside',
-                        yaxis='y',
-                        offsetgroup=0,
-                        width=0.4
-                    ))
+                    # Barras para Toneladas Planificadas (subplot 1)
+                    fig_combinado.add_trace(
+                        go.Bar(
+                            name='Ton. Planificado',
+                            x=[''],
+                            y=[t_prog],
+                            marker_color='#A8D5BA',
+                            text=[f"{t_prog:,.0f}"],
+                            textposition='outside',
+                            showlegend=True
+                        ),
+                        row=1, col=1
+                    )
+                    
+                    # Barras para Toneladas Reales (subplot 1)
+                    fig_combinado.add_trace(
+                        go.Bar(
+                            name='Ton. Real',
+                            x=[''],
+                            y=[t_real],
+                            marker_color='#2E7D32',
+                            text=[f"{t_real:,.0f}"],
+                            textposition='outside',
+                            showlegend=True
+                        ),
+                        row=1, col=1
+                    )
                     
                     # Líneas para Equipos
                     fig_combinado.add_trace(go.Scatter(
