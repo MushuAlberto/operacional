@@ -137,7 +137,7 @@ if file_tablero:
                 barmode='group',
                 height=400,
                 xaxis_title="",
-                yaxis_title="Toneladas",
+                yaxis=dict(title=dict(text="Toneladas")),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
             )
             st.plotly_chart(fig_ton_general, use_container_width=True)
@@ -165,7 +165,7 @@ if file_tablero:
                 title="% Cumplimiento por Producto",
                 height=400,
                 xaxis_title="",
-                yaxis_title="Cumplimiento (%)",
+                yaxis=dict(title=dict(text="Cumplimiento (%)")),
                 showlegend=False
             )
             st.plotly_chart(fig_cumplimiento, use_container_width=True)
@@ -354,19 +354,17 @@ if file_tablero:
                             tickfont=dict(size=14)
                         ),
                         yaxis=dict(
-                            title="Toneladas",
+                            title=dict(text="Toneladas", font=dict(size=14)),
                             side='left',
                             showgrid=True,
                             gridcolor='rgba(200,200,200,0.3)',
-                            titlefont=dict(size=14),
                             tickfont=dict(size=12)
                         ),
                         yaxis2=dict(
-                            title="Equipos",
+                            title=dict(text="Equipos", font=dict(size=14)),
                             side='right',
                             overlaying='y',
                             showgrid=False,
-                            titlefont=dict(size=14),
                             tickfont=dict(size=12)
                         ),
                         legend=dict(
