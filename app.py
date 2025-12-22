@@ -75,64 +75,72 @@ if file_tablero:
             # Gráfico Combinado (Toneladas y Equipos juntos)
             fig_combinado = go.Figure()
             
-            # Barras de Toneladas
+            # Barras de Toneladas Programadas
             fig_combinado.add_trace(go.Bar(
                 name='Ton Prog',
-                x=['Toneladas', 'Equipos'],
-                y=[t_prog, 0],
+                x=['Toneladas'],
+                y=[t_prog],
                 marker_color='#A8D5BA',
-                text=[f"{t_prog:,.0f}", ''],
-                textposition='auto',
-                offsetgroup=0
+                text=[f"{t_prog:,.0f}"],
+                textposition='outside',
+                showlegend=True
             ))
             
+            # Barras de Toneladas Reales
             fig_combinado.add_trace(go.Bar(
                 name='Ton Real',
-                x=['Toneladas', 'Equipos'],
-                y=[t_real, 0],
+                x=['Toneladas'],
+                y=[t_real],
                 marker_color='#2E7D32',
-                text=[f"{t_real:,.0f}", ''],
-                textposition='auto',
-                offsetgroup=0
+                text=[f"{t_real:,.0f}"],
+                textposition='outside',
+                showlegend=True
             ))
             
-            # Barras de Equipos
+            # Barras de Equipos Programados
             fig_combinado.add_trace(go.Bar(
                 name='Eq Prog',
-                x=['Toneladas', 'Equipos'],
-                y=[0, e_prog],
+                x=['Equipos'],
+                y=[e_prog],
                 marker_color='#BDD7EE',
-                text=['', f"{e_prog:.0f}"],
-                textposition='auto',
-                offsetgroup=1
+                text=[f"{e_prog:.0f}"],
+                textposition='outside',
+                showlegend=True
             ))
             
+            # Barras de Equipos Reales
             fig_combinado.add_trace(go.Bar(
                 name='Eq Real',
-                x=['Toneladas', 'Equipos'],
-                y=[0, e_real],
+                x=['Equipos'],
+                y=[e_real],
                 marker_color='#2F5597',
-                text=['', f"{e_real:.0f}"],
-                textposition='auto',
-                offsetgroup=1
+                text=[f"{e_real:.0f}"],
+                textposition='outside',
+                showlegend=True
             ))
             
             fig_combinado.update_layout(
                 title="Comparativa Toneladas vs Equipos (Programado vs Real)",
                 barmode='group',
                 height=400,
-                margin=dict(t=60, b=40, l=40, r=40),
-                xaxis_title="",
+                margin=dict(t=60, b=40, l=60, r=40),
+                xaxis=dict(
+                    title="",
+                    categoryorder='array',
+                    categoryarray=['Toneladas', 'Equipos']
+                ),
                 yaxis_title="Cantidad",
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
                     y=1.02,
-                    xanchor="center",
-                    x=0.5
+                    xanchor="right",
+                    x=1
                 ),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)'
+                plot_bgcolor='rgba(240,240,240,0.3)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                bargap=0.3,
+                bargroupgap=0.1
             )
             
             st.plotly_chart(fig_combinado, use_container_width=True)
