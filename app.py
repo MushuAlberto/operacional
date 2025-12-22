@@ -196,145 +196,260 @@ if file_tablero:
         st.markdown("<br>", unsafe_allow_html=True)
         
         # ========================================
-        # SECCIÓN 2: DETALLES POR PRODUCTO
+        # SECCIÓN 2: DETALLES POR PRODUCTO (TABS)
         # ========================================
         st.header("📦 DETALLES POR PRODUCTO")
-        st.markdown("---")
+        st.markdown("Seleccione un producto para ver su análisis detallado")
         
+        # Crear tabs dinámicos
+        tab_names = []
         for prod in productos_ordenados:
-            df_p = df_dia[df_dia['Producto'] == prod]
-            
-            # Métricas
-            t_prog = df_p['Ton_Prog'].sum()
-            t_real = df_p['Ton_Real'].sum()
-            e_prog = df_p['Eq_Prog'].sum()
-            e_real = df_p['Eq_Real'].sum()
-            cumplimiento = (t_real / t_prog * 100) if t_prog > 0 else 0
-            reg_promedio = df_p['Regulacion_Real'].mean() * 100
-            
-            # Destino principal
-            destino_principal = df_p.loc[df_p['Ton_Real'].idxmax(), 'Destino'] if not df_p.empty else "N/A"
-
-            # Cabecera del producto
             if prod == "SLIT":
-                st.markdown(f"## 🔵 {prod}")
-                st.markdown("**Producto Prioritario**")
+                tab_names.append(f"🔵 {prod}")
             else:
-                st.markdown(f"## 📦 {prod}")
-            
-            # Métricas del producto
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Destino Principal", destino_principal)
-            
-            with col2:
-                delta_ton = t_real - t_prog
-                st.metric("Tonelaje Real", f"{t_real:,.0f}", f"{delta_ton:+,.0f}")
-            
-            with col3:
-                st.metric("Cumplimiento", f"{cumplimiento:.1f}%", f"{cumplimiento - 100:.1f}%")
-            
-            with col4:
-                st.metric("Regulación Real", f"{reg_promedio:.1f}%")
-            
-            # Gráfico Combinado (Barras + Líneas)
-            fig_combinado = go.Figure()
-            
-            # Barras para Toneladas
-            fig_combinado.add_trace(go.Bar(
-                name='Ton. Real',
-                x=['Toneladas'],
-                y=[t_real],
-                marker_color='#2E7D32',
-                text=[f"{t_real:,.0f}"],
-                textposition='outside',
-                yaxis='y',
-                offsetgroup=0
-            ))
-            
-            fig_combinado.add_trace(go.Bar(
-                name='Ton. Planificado',
-                x=['Toneladas'],
-                y=[t_prog],
-                marker_color='#A8D5BA',
-                text=[f"{t_prog:,.0f}"],
-                textposition='outside',
-                yaxis='y',
-                offsetgroup=0
-            ))
-            
-            # Líneas para Equipos
-            fig_combinado.add_trace(go.Scatter(
-                name='Equipos Reales',
-                x=['Equipos'],
-                y=[e_real],
-                mode='lines+markers+text',
-                line=dict(color='#2F5597', width=3),
-                marker=dict(size=12, color='#2F5597'),
-                text=[f"{e_real:.0f}"],
-                textposition='top center',
-                yaxis='y2'
-            ))
-            
-            fig_combinado.add_trace(go.Scatter(
-                name='Equipos Planificados',
-                x=['Equipos'],
-                y=[e_prog],
-                mode='lines+markers+text',
-                line=dict(color='#BDD7EE', width=3, dash='dash'),
-                marker=dict(size=12, color='#BDD7EE'),
-                text=[f"{e_prog:.0f}"],
-                textposition='top center',
-                yaxis='y2'
-            ))
-            
-            fig_combinado.update_layout(
-                title=f"Comparativa {prod}: Toneladas (Barras) vs Equipos (Líneas)",
-                height=400,
-                margin=dict(t=60, b=40, l=60, r=80),
-                xaxis=dict(
-                    domain=[0, 0.45],
-                    anchor='y',
-                    title=""
-                ),
-                xaxis2=dict(
-                    domain=[0.55, 1],
-                    anchor='y2',
-                    title=""
-                ),
-                yaxis=dict(
-                    title="Toneladas",
-                    side='left',
-                    showgrid=True
-                ),
-                yaxis2=dict(
-                    title="Equipos",
-                    side='right',
-                    overlaying='y',
-                    showgrid=False
-                ),
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="center",
-                    x=0.5
-                ),
-                plot_bgcolor='rgba(240,240,240,0.2)',
-                barmode='group',
-                bargap=0.3
-            )
-            
-            fig_combinado.update_traces(
-                selector=dict(type='scatter'),
-                xaxis='x2'
-            )
-            
-            st.plotly_chart(fig_combinado, use_container_width=True)
-            
-            st.markdown("---")
-            st.markdown("<br>", unsafe_allow_html=True)
+                tab_names.append(f"📦 {prod}")
+        
+        tabs = st.tabs(tab_names)
+        
+        # Contenido de cada tab
+        for idx, prod in enumerate(productos_ordenados):
+            with tabs[idx]:
+                df_p = df_dia[df_dia['Producto'] == prod]
+                
+                # Métricas
+                t_prog = df_p['Ton_Prog'].sum()
+                t_real = df_p['Ton_Real'].sum()
+                e_prog = df_p['Eq_Prog'].sum()
+                e_real = df_p['Eq_Real'].sum()
+                cumplimiento = (t_real / t_prog * 100) if t_prog > 0 else 0
+                reg_promedio = df_p['Regulacion_Real'].mean() * 100
+                
+                # Destino principal
+                destino_principal = df_p.loc[df_p['Ton_Real'].idxmax(), 'Destino'] if not df_p.empty else "N/A"
+                num_viajes = len(df_p)
+                
+                # Header del producto
+                if prod == "SLIT":
+                    st.markdown("### 🔵 PRODUCTO PRIORITARIO")
+                else:
+                    st.markdown(f"### Análisis de {prod}")
+                
+                st.markdown("---")
+                
+                # KPIs en cards grandes
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    delta_ton = t_real - t_prog
+                    delta_color = "normal" if abs(delta_ton) < (t_prog * 0.05) else ("inverse" if delta_ton < 0 else "normal")
+                    st.metric(
+                        "📊 Tonelaje Real",
+                        f"{t_real:,.0f} Ton",
+                        f"{delta_ton:+,.0f} vs Prog",
+                        delta_color=delta_color
+                    )
+                
+                with col2:
+                    delta_eq = e_real - e_prog
+                    st.metric(
+                        "🚛 Equipos Real",
+                        f"{e_real:.0f}",
+                        f"{delta_eq:+.0f} vs Prog"
+                    )
+                
+                with col3:
+                    cumpl_status = "normal" if cumplimiento >= 95 else "inverse"
+                    st.metric(
+                        "✅ Cumplimiento",
+                        f"{cumplimiento:.1f}%",
+                        f"{cumplimiento - 100:.1f}%",
+                        delta_color=cumpl_status
+                    )
+                
+                with col4:
+                    st.metric(
+                        "📍 Destino Principal",
+                        destino_principal,
+                        f"{num_viajes} viajes"
+                    )
+                
+                st.markdown("---")
+                
+                # Sección de gráficos
+                col_chart1, col_chart2 = st.columns([3, 2])
+                
+                with col_chart1:
+                    # Gráfico Combinado (Barras + Líneas) - MÁS GRANDE
+                    fig_combinado = go.Figure()
+                    
+                    # Barras para Toneladas
+                    fig_combinado.add_trace(go.Bar(
+                        name='Ton. Real',
+                        x=['Toneladas'],
+                        y=[t_real],
+                        marker_color='#2E7D32',
+                        text=[f"{t_real:,.0f}"],
+                        textposition='outside',
+                        yaxis='y',
+                        offsetgroup=0,
+                        width=0.4
+                    ))
+                    
+                    fig_combinado.add_trace(go.Bar(
+                        name='Ton. Planificado',
+                        x=['Toneladas'],
+                        y=[t_prog],
+                        marker_color='#A8D5BA',
+                        text=[f"{t_prog:,.0f}"],
+                        textposition='outside',
+                        yaxis='y',
+                        offsetgroup=0,
+                        width=0.4
+                    ))
+                    
+                    # Líneas para Equipos
+                    fig_combinado.add_trace(go.Scatter(
+                        name='Equipos Reales',
+                        x=['Equipos'],
+                        y=[e_real],
+                        mode='lines+markers+text',
+                        line=dict(color='#2F5597', width=4),
+                        marker=dict(size=15, color='#2F5597'),
+                        text=[f"{e_real:.0f}"],
+                        textposition='top center',
+                        textfont=dict(size=14, color='#2F5597'),
+                        yaxis='y2'
+                    ))
+                    
+                    fig_combinado.add_trace(go.Scatter(
+                        name='Equipos Planificados',
+                        x=['Equipos'],
+                        y=[e_prog],
+                        mode='lines+markers+text',
+                        line=dict(color='#BDD7EE', width=4, dash='dash'),
+                        marker=dict(size=15, color='#BDD7EE', line=dict(width=2, color='#2F5597')),
+                        text=[f"{e_prog:.0f}"],
+                        textposition='top center',
+                        textfont=dict(size=14, color='#2F5597'),
+                        yaxis='y2'
+                    ))
+                    
+                    fig_combinado.update_layout(
+                        title=dict(
+                            text=f"<b>Comparativa Toneladas vs Equipos</b>",
+                            font=dict(size=16)
+                        ),
+                        height=500,
+                        margin=dict(t=80, b=50, l=70, r=90),
+                        xaxis=dict(
+                            domain=[0, 0.42],
+                            anchor='y',
+                            title="",
+                            tickfont=dict(size=14)
+                        ),
+                        xaxis2=dict(
+                            domain=[0.58, 1],
+                            anchor='y2',
+                            title="",
+                            tickfont=dict(size=14)
+                        ),
+                        yaxis=dict(
+                            title="Toneladas",
+                            side='left',
+                            showgrid=True,
+                            gridcolor='rgba(200,200,200,0.3)',
+                            titlefont=dict(size=14),
+                            tickfont=dict(size=12)
+                        ),
+                        yaxis2=dict(
+                            title="Equipos",
+                            side='right',
+                            overlaying='y',
+                            showgrid=False,
+                            titlefont=dict(size=14),
+                            tickfont=dict(size=12)
+                        ),
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5,
+                            font=dict(size=12)
+                        ),
+                        plot_bgcolor='rgba(240,245,250,0.5)',
+                        paper_bgcolor='white',
+                        barmode='group',
+                        bargap=0.2
+                    )
+                    
+                    fig_combinado.update_traces(
+                        selector=dict(type='scatter'),
+                        xaxis='x2'
+                    )
+                    
+                    st.plotly_chart(fig_combinado, use_container_width=True)
+                
+                with col_chart2:
+                    # Indicadores adicionales
+                    st.markdown("#### 📊 Indicadores Adicionales")
+                    
+                    # Regulación
+                    st.metric("🎯 Regulación Real Promedio", f"{reg_promedio:.2f}%")
+                    
+                    # Eficiencia (ton por equipo)
+                    eficiencia = t_real / e_real if e_real > 0 else 0
+                    st.metric("⚡ Eficiencia", f"{eficiencia:.1f} Ton/Equipo")
+                    
+                    # Desviación
+                    desviacion_ton = ((t_real - t_prog) / t_prog * 100) if t_prog > 0 else 0
+                    st.metric("📈 Desviación Tonelaje", f"{desviacion_ton:+.1f}%")
+                    
+                    st.markdown("---")
+                    
+                    # Alertas o estados
+                    st.markdown("#### 🚦 Estado del Producto")
+                    
+                    if cumplimiento >= 100:
+                        st.success("✅ Cumplimiento alcanzado")
+                    elif cumplimiento >= 90:
+                        st.warning("⚠️ Cumplimiento en rango aceptable")
+                    else:
+                        st.error("🔴 Bajo cumplimiento - Requiere atención")
+                    
+                    if abs(desviacion_ton) > 10:
+                        st.info(f"📊 Desviación significativa: {desviacion_ton:+.1f}%")
+                
+                st.markdown("---")
+                
+                # Tabla de despachos detallada
+                st.markdown("#### 📋 Despachos por Destino")
+                
+                df_destinos = df_p.groupby('Destino').agg({
+                    'Ton_Prog': 'sum',
+                    'Ton_Real': 'sum',
+                    'Eq_Prog': 'sum',
+                    'Eq_Real': 'sum',
+                    'Fecha': 'count'
+                }).rename(columns={'Fecha': 'Viajes'}).reset_index()
+                
+                df_destinos['Cumplimiento'] = (df_destinos['Ton_Real'] / df_destinos['Ton_Prog'] * 100).fillna(0)
+                df_destinos = df_destinos.sort_values('Ton_Real', ascending=False)
+                
+                # Formatear para display
+                df_destinos_display = df_destinos.copy()
+                df_destinos_display['Ton_Prog'] = df_destinos_display['Ton_Prog'].apply(lambda x: f"{x:,.1f}")
+                df_destinos_display['Ton_Real'] = df_destinos_display['Ton_Real'].apply(lambda x: f"{x:,.1f}")
+                df_destinos_display['Eq_Prog'] = df_destinos_display['Eq_Prog'].apply(lambda x: f"{x:.0f}")
+                df_destinos_display['Eq_Real'] = df_destinos_display['Eq_Real'].apply(lambda x: f"{x:.0f}")
+                df_destinos_display['Cumplimiento'] = df_destinos_display['Cumplimiento'].apply(lambda x: f"{x:.1f}%")
+                
+                st.dataframe(
+                    df_destinos_display,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
+                )
 
     except Exception as e:
         st.error(f"❌ Error en el procesamiento: {e}")
@@ -348,12 +463,14 @@ else:
     ### 📋 Instrucciones:
     1. Sube el archivo Excel (.xlsm) usando el botón de arriba
     2. Selecciona la fecha a analizar en la barra lateral
-    3. Explora el resumen general y los detalles por producto
+    3. Explora el resumen general en la primera sección
+    4. Navega por los tabs para ver detalles de cada producto
     
     ### ✨ Características:
-    - 📊 Resumen general con KPIs consolidados
-    - 🏆 Ranking de productos por desempeño
-    - 📈 Gráficos comparativos interactivos
-    - 🔵 Priorización automática de SLIT
-    - 📦 Detalles individuales por producto
+    - 📊 **Resumen General**: KPIs consolidados y comparativas
+    - 🏆 **Ranking**: Productos ordenados por desempeño
+    - 📑 **Tabs por Producto**: Navegación rápida y limpia
+    - 🔵 **SLIT Prioritario**: Identificado claramente
+    - 📈 **Gráficos Interactivos**: Barras y líneas combinadas
+    - 📋 **Despachos Detallados**: Por destino en cada producto
     """)
