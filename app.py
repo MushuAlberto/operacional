@@ -17,7 +17,7 @@ if file_tablero:
         df = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_idx, engine='openpyxl')
         df.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Eq_Prog', 'Eq_Real', 'Regulacion_Real']
         
-        # Limpieza de fechas y textos (Uso de .str para evitar error de 'Series')
+        # Limpieza de fechas y textos
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce').dt.date
         df = df.dropna(subset=['Fecha'])
         df['Producto'] = df['Producto'].astype(str).str.upper().str.strip()
@@ -72,22 +72,70 @@ if file_tablero:
                 st.caption("% Regulación Real")
                 st.markdown(f"### {reg_promedio:.1f}%")
 
-            # Layout de Gráficos
-            g1, g2 = st.columns(2)
+            # Gráfico Combinado (Toneladas y Equipos juntos)
+            fig_combinado = go.Figure()
             
-            with g1:
-                fig_ton = go.Figure()
-                fig_ton.add_trace(go.Bar(x=['Tonelaje'], y=[t_prog], name='Prog', marker_color='#A8D5BA', text=[f"{t_prog:,.0f}"], textposition='auto'))
-                fig_ton.add_trace(go.Bar(x=['Tonelaje'], y=[t_real], name='Real', marker_color='#2E7D32', text=[f"{t_real:,.0f}"], textposition='auto'))
-                fig_ton.update_layout(title="Comparativa Toneladas", barmode='group', height=280, margin=dict(t=30, b=0))
-                st.plotly_chart(fig_ton, use_container_width=True)
-
-            with g2:
-                fig_eq = go.Figure()
-                fig_eq.add_trace(go.Bar(x=['Equipos'], y=[e_prog], name='Prog', marker_color='#BDD7EE', text=[f"{e_prog:.0f}"], textposition='auto'))
-                fig_eq.add_trace(go.Bar(x=['Equipos'], y=[e_real], name='Real', marker_color='#2F5597', text=[f"{e_real:.0f}"], textposition='auto'))
-                fig_eq.update_layout(title="Comparativa Equipos", barmode='group', height=280, margin=dict(t=30, b=0))
-                st.plotly_chart(fig_eq, use_container_width=True)
+            # Barras de Toneladas
+            fig_combinado.add_trace(go.Bar(
+                name='Ton Prog',
+                x=['Toneladas', 'Equipos'],
+                y=[t_prog, 0],
+                marker_color='#A8D5BA',
+                text=[f"{t_prog:,.0f}", ''],
+                textposition='auto',
+                offsetgroup=0
+            ))
+            
+            fig_combinado.add_trace(go.Bar(
+                name='Ton Real',
+                x=['Toneladas', 'Equipos'],
+                y=[t_real, 0],
+                marker_color='#2E7D32',
+                text=[f"{t_real:,.0f}", ''],
+                textposition='auto',
+                offsetgroup=0
+            ))
+            
+            # Barras de Equipos
+            fig_combinado.add_trace(go.Bar(
+                name='Eq Prog',
+                x=['Toneladas', 'Equipos'],
+                y=[0, e_prog],
+                marker_color='#BDD7EE',
+                text=['', f"{e_prog:.0f}"],
+                textposition='auto',
+                offsetgroup=1
+            ))
+            
+            fig_combinado.add_trace(go.Bar(
+                name='Eq Real',
+                x=['Toneladas', 'Equipos'],
+                y=[0, e_real],
+                marker_color='#2F5597',
+                text=['', f"{e_real:.0f}"],
+                textposition='auto',
+                offsetgroup=1
+            ))
+            
+            fig_combinado.update_layout(
+                title="Comparativa Toneladas vs Equipos (Programado vs Real)",
+                barmode='group',
+                height=400,
+                margin=dict(t=60, b=40, l=40, r=40),
+                xaxis_title="",
+                yaxis_title="Cantidad",
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            
+            st.plotly_chart(fig_combinado, use_container_width=True)
             
             st.divider()
 
