@@ -466,7 +466,8 @@ if file_tablero:
                 df_destinos_display['Eq_Real'] = df_destinos_display['Eq_Real'].apply(lambda x: f"{x:.0f}")
                 df_destinos_display['Cumplimiento'] = df_destinos_display['Cumplimiento'].apply(lambda x: f"{x:.1f}%")
                 
-                                                st.dataframe(
+                # --- CORRECCIÓN REALIZADA AQUÍ: Se eliminaron los espacios excesivos ---
+                st.dataframe(
                     df_destinos_display,
                     use_container_width=True,
                     hide_index=True,
