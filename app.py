@@ -72,75 +72,100 @@ if file_tablero:
                 st.caption("% Regulación Real")
                 st.markdown(f"### {reg_promedio:.1f}%")
 
-            # Gráfico Combinado (Toneladas y Equipos juntos)
+            # Gráfico Combinado (Barras para Toneladas + Líneas para Equipos)
             fig_combinado = go.Figure()
             
-            # Barras de Toneladas Programadas
+            # Barras para Toneladas Programadas
             fig_combinado.add_trace(go.Bar(
-                name='Ton Prog',
-                x=['Toneladas'],
-                y=[t_prog],
-                marker_color='#A8D5BA',
-                text=[f"{t_prog:,.0f}"],
-                textposition='outside',
-                showlegend=True
-            ))
-            
-            # Barras de Toneladas Reales
-            fig_combinado.add_trace(go.Bar(
-                name='Ton Real',
+                name='Ton. Real',
                 x=['Toneladas'],
                 y=[t_real],
                 marker_color='#2E7D32',
                 text=[f"{t_real:,.0f}"],
                 textposition='outside',
-                showlegend=True
+                yaxis='y',
+                offsetgroup=0
             ))
             
-            # Barras de Equipos Programados
+            # Barras para Toneladas Reales
             fig_combinado.add_trace(go.Bar(
-                name='Eq Prog',
-                x=['Equipos'],
-                y=[e_prog],
-                marker_color='#BDD7EE',
-                text=[f"{e_prog:.0f}"],
+                name='Ton. Planificado',
+                x=['Toneladas'],
+                y=[t_prog],
+                marker_color='#A8D5BA',
+                text=[f"{t_prog:,.0f}"],
                 textposition='outside',
-                showlegend=True
+                yaxis='y',
+                offsetgroup=0
             ))
             
-            # Barras de Equipos Reales
-            fig_combinado.add_trace(go.Bar(
-                name='Eq Real',
+            # Línea para Equipos Reales
+            fig_combinado.add_trace(go.Scatter(
+                name='Equipos Reales',
                 x=['Equipos'],
                 y=[e_real],
-                marker_color='#2F5597',
+                mode='lines+markers+text',
+                line=dict(color='#2F5597', width=3),
+                marker=dict(size=10, color='#2F5597'),
                 text=[f"{e_real:.0f}"],
-                textposition='outside',
-                showlegend=True
+                textposition='top center',
+                yaxis='y2'
+            ))
+            
+            # Línea para Equipos Planificados
+            fig_combinado.add_trace(go.Scatter(
+                name='Equipos Planificados',
+                x=['Equipos'],
+                y=[e_prog],
+                mode='lines+markers+text',
+                line=dict(color='#BDD7EE', width=3, dash='dash'),
+                marker=dict(size=10, color='#BDD7EE'),
+                text=[f"{e_prog:.0f}"],
+                textposition='top center',
+                yaxis='y2'
             ))
             
             fig_combinado.update_layout(
-                title="Comparativa Toneladas vs Equipos (Programado vs Real)",
-                barmode='group',
-                height=400,
-                margin=dict(t=60, b=40, l=60, r=40),
+                title="Comparativa Toneladas (Barras) vs Equipos (Líneas)",
+                height=450,
+                margin=dict(t=60, b=40, l=60, r=80),
                 xaxis=dict(
-                    title="",
-                    categoryorder='array',
-                    categoryarray=['Toneladas', 'Equipos']
+                    domain=[0, 0.45],
+                    anchor='y',
+                    title=""
                 ),
-                yaxis_title="Cantidad",
+                xaxis2=dict(
+                    domain=[0.55, 1],
+                    anchor='y2',
+                    title=""
+                ),
+                yaxis=dict(
+                    title="Toneladas",
+                    side='left',
+                    showgrid=True
+                ),
+                yaxis2=dict(
+                    title="Equipos",
+                    side='right',
+                    overlaying='y',
+                    showgrid=False
+                ),
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
                     y=1.02,
-                    xanchor="right",
-                    x=1
+                    xanchor="center",
+                    x=0.5
                 ),
-                plot_bgcolor='rgba(240,240,240,0.3)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                bargap=0.3,
-                bargroupgap=0.1
+                plot_bgcolor='rgba(240,240,240,0.2)',
+                barmode='group',
+                bargap=0.3
+            )
+            
+            # Actualizar trazos para usar el eje X correcto
+            fig_combinado.update_traces(
+                selector=dict(type='scatter'),
+                xaxis='x2'
             )
             
             st.plotly_chart(fig_combinado, use_container_width=True)
