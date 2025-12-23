@@ -12,15 +12,7 @@ st.set_page_config(page_title="Reporte Priorizado SLIT", layout="wide")
 
 st.title("📊 Dashboard de Despachos por Producto")
 
-# Botones de exportación en la parte superior
-col_export1, col_export2, col_export3 = st.columns([1, 1, 2])
-
-with col_export1:
-    generar_html = st.button("📊 Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
-
-with col_export2:
-    generar_correo = st.button("✉️ Generar Texto de Correo", use_container_width=True)
-
+# Separador inicial
 st.markdown("---")
 
 file_tablero = st.file_uploader("Cargar 03.- Tablero Despachos (.xlsm)", type=["xlsm"])
@@ -65,19 +57,15 @@ if file_tablero:
         st.markdown(f"<h2 style='text-align: center;'>📊 RESUMEN GENERAL DE LA JORNADA</h2>", unsafe_allow_html=True)
         
         # 2. Logos alineados verticalmente al CENTRO
-        # AGREGADO: vertical_alignment="center" para que los logos queden a la misma altura visual
         col_img_izq, col_espacio, col_img_der = st.columns([2, 6, 3], vertical_alignment="center")
         
         with col_img_izq:
-            # Logo SQM a la izquierda
             try:
                 st.image("logoSQM-li-90.png", width=120)
             except:
                 st.warning("Falta logoSQM")
             
         with col_img_der:
-            # Logo Somos Futuro a la derecha
-            # El div asegura que se pegue a la derecha
             try:
                 st.markdown('<div style="text-align: right;">', unsafe_allow_html=True)
                 st.image("Image20240314124309.png", width=250)
@@ -86,7 +74,7 @@ if file_tablero:
                 st.warning("Falta Image2024")
         
         # 3. Fecha Centrada
-        st.markdown(f"<h3 style='text-align: left;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -328,7 +316,6 @@ if file_tablero:
                     fig_combinado = make_subplots(
                         rows=1, cols=2,
                         column_widths=[0.45, 0.45],
-                        # subplot_titles=("Toneladas", "Equipos"), # ELIMINADO: Títulos de subplots
                         horizontal_spacing=0.15
                     )
                     
@@ -484,6 +471,18 @@ if file_tablero:
         # ========================================
         # SECCIÓN 3: GENERACIÓN DE REPORTES
         # ========================================
+        
+        st.markdown("---")
+        st.markdown("<h3 style='text-align: center;'>📤 Exportar Reportes</h3>", unsafe_allow_html=True)
+        
+        # Botones de exportación en la parte INFERIOR
+        col_export1, col_export2, col_export3 = st.columns([1, 1, 2])
+        
+        with col_export1:
+            generar_html = st.button("📊 Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
+        
+        with col_export2:
+            generar_correo = st.button("✉️ Generar Texto de Correo", use_container_width=True)
         
         # Generar HTML Interactivo
         if generar_html:
@@ -741,77 +740,6 @@ if file_tablero:
                     df_p = df_dia[df_dia['Producto'] == prod]
                     t_prog = df_p['Ton_Prog'].sum()
                     t_real = df_p['Ton_Real'].sum()
-                    cumplimiento = (t_real / t_prog * 100) if t_prog > 0 else 0
-                    
-                    active_class = "active" if idx == 0 else ""
-                    
-                    # Alerta según cumplimiento
-                    if cumplimiento >= 100:
-                        alert_class = "alert-success"
-                        alert_text = "✅ Cumplimiento alcanzado"
-                    elif cumplimiento >= 90:
-                        alert_class = "alert-warning"
-                        alert_text = "⚠️ Cumplimiento en rango aceptable"
-                    else:
-                        alert_class = "alert-danger"
-                        alert_text = "🔴 Bajo cumplimiento - Requiere atención"
-                    
-                    html_content += f"""
-            <div id="tab{idx}" class="tab-content {active_class}">
-                <div class="kpi-container">
-                    <div class="kpi-card" style="background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);">
-                        <div class="kpi-label">Tonelaje Real</div>
-                        <div class="kpi-value">{t_real:,.0f}</div>
-                    </div>
-                    <div class="kpi-card" style="background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);">
-                        <div class="kpi-label">Cumplimiento</div>
-                        <div class="kpi-value">{cumplimiento:.1f}%</div>
-                    </div>
-                </div>
-                <div class="alert {alert_class}">{alert_text}</div>
-                <div id="grafico_producto_{idx}"></div>
-            </div>
-"""
-                
-                html_content += """
-        </div>
-        
-        <div class="footer">
-            <p><strong>Dashboard de Despachos - SQM</strong></p>
-            <p>Reporte generado automáticamente</p>
-        </div>
-    </div>
-    
-    <script>
-        // Función para cambiar tabs
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].className = tabcontent[i].className.replace(" active", "");
-            }
-            tablinks = document.getElementsByClassName("tab");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            document.getElementById(tabName).className += " active";
-            evt.currentTarget.className += " active";
-        }
-        
-        // Gráfico de toneladas
-        var data_ton = {fig_ton_general.to_json()};
-        Plotly.newPlot('grafico_toneladas', data_ton.data, data_ton.layout);
-        
-        // Gráfico de cumplimiento
-        var data_cumpl = {fig_cumplimiento.to_json()};
-        Plotly.newPlot('grafico_cumplimiento', data_cumpl.data, data_cumpl.layout);
-"""
-                
-                # Agregar gráficos de cada producto
-                for idx, prod in enumerate(productos_ordenados):
-                    df_p = df_dia[df_dia['Producto'] == prod]
-                    t_prog = df_p['Ton_Prog'].sum()
-                    t_real = df_p['Ton_Real'].sum()
                     e_prog = df_p['Eq_Prog'].sum()
                     e_real = df_p['Eq_Real'].sum()
                     
@@ -995,4 +923,3 @@ else:
     - 📈 **Gráficos Interactivos**: Barras y líneas combinadas
     - 📋 **Despachos Detallados**: Por destino en cada producto
     """)
-
