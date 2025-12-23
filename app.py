@@ -5,20 +5,21 @@ import plotly.express as px
 from datetime import datetime
 import base64
 from io import BytesIO
+from plotly.subplots import make_subplots
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Reporte Priorizado SLIT", layout="wide")
 
-st.title("Dashboard de Despachos por Producto")
+st.title("📊 Dashboard de Despachos por Producto")
 
 # Botones de exportación en la parte superior
 col_export1, col_export2, col_export3 = st.columns([1, 1, 2])
 
 with col_export1:
-    generar_html = st.button("Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
+    generar_html = st.button("📊 Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
 
 with col_export2:
-    generar_correo = st.button("Generar Texto de Correo", use_container_width=True)
+    generar_correo = st.button("✉️ Generar Texto de Correo", use_container_width=True)
 
 st.markdown("---")
 
@@ -59,23 +60,22 @@ if file_tablero:
         # ========================================
         # SECCIÓN 1: RESUMEN GENERAL DE LA JORNADA
         # ========================================
-        st.header(f"RESUMEN EJECUTIVO DE LA JORNADA")
+        st.header(f"📊 RESUMEN GENERAL DE LA JORNADA")
         
         # --- INICIO: SECCIÓN DE IMÁGENES LOGOS (LOCALES) ---
         col_img1, col_img2, col_espacio = st.columns([1, 2, 4])
         
         with col_img1:
-            # Intenta cargar la imagen local, si falla no muestra error crítico
             try:
                 st.image("logoSQM-li-90.png", width=120)
             except:
-                st.warning("No se encontró logoSQM-li-90.png")
+                st.warning("Falta logoSQM-li-90.png")
             
         with col_img2:
             try:
                 st.image("Image20240314124309.png", width=250)
             except:
-                st.warning("No se encontró Image20240314124309.png")
+                st.warning("Falta Image20240314124309.png")
         # --- FIN: SECCIÓN DE IMÁGENES LOGOS ---
         
         st.subheader(f"📅 {fecha_sel.strftime('%d-%m-%Y')}")
@@ -90,7 +90,7 @@ if file_tablero:
         num_productos = len(productos_ordenados)
         
         # KPIs Totales
-        st.markdown("### Indicadores Generales")
+        st.markdown("### 📈 Indicadores Generales")
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
@@ -145,7 +145,7 @@ if file_tablero:
         df_resumen = pd.DataFrame(resumen_productos)
         
         # Gráfico Comparativo General
-        st.markdown("### Comparativa por Producto")
+        st.markdown("### 📊 Comparativa por Producto")
         
         col_g1, col_g2 = st.columns(2)
         
@@ -207,7 +207,7 @@ if file_tablero:
             st.plotly_chart(fig_cumplimiento, use_container_width=True)
         
         # Ranking de Productos
-        st.markdown("### Ranking de Productos")
+        st.markdown("### 🏆 Ranking de Productos")
         
         df_ranking = df_resumen.copy()
         df_ranking['Diferencia'] = df_ranking['Ton_Real'] - df_ranking['Ton_Prog']
@@ -234,16 +234,16 @@ if file_tablero:
         # ========================================
         # SECCIÓN 2: DETALLES POR PRODUCTO (TABS)
         # ========================================
-        st.header("DETALLES POR PRODUCTO")
+        st.header("📦 DETALLES POR PRODUCTO")
         st.markdown("Seleccione un producto para ver su análisis detallado")
         
         # Crear tabs dinámicos
         tab_names = []
         for prod in productos_ordenados:
             if prod == "SLIT":
-                tab_names.append(f"{prod}")
+                tab_names.append(f"🔵 {prod}")
             else:
-                tab_names.append(f"{prod}")
+                tab_names.append(f"📦 {prod}")
         
         tabs = st.tabs(tab_names)
         
@@ -266,7 +266,7 @@ if file_tablero:
                 
                 # Header del producto
                 if prod == "SLIT":
-                    st.markdown("### PRODUCTO PRIORITARIO")
+                    st.markdown("### 🔵 PRODUCTO PRIORITARIO")
                 else:
                     st.markdown(f"### Análisis de {prod}")
                 
@@ -279,7 +279,7 @@ if file_tablero:
                     delta_ton = t_real - t_prog
                     delta_color = "normal" if abs(delta_ton) < (t_prog * 0.05) else ("inverse" if delta_ton < 0 else "normal")
                     st.metric(
-                        "Tonelaje Real",
+                        "📊 Tonelaje Real",
                         f"{t_real:,.0f} Ton",
                         f"{delta_ton:+,.0f} vs Prog",
                         delta_color=delta_color
@@ -288,7 +288,7 @@ if file_tablero:
                 with col2:
                     delta_eq = e_real - e_prog
                     st.metric(
-                        "Equipos Real",
+                        "🚛 Equipos Real",
                         f"{e_real:.0f}",
                         f"{delta_eq:+.0f} vs Prog"
                     )
@@ -296,7 +296,7 @@ if file_tablero:
                 with col3:
                     cumpl_status = "normal" if cumplimiento >= 95 else "inverse"
                     st.metric(
-                        "Cumplimiento",
+                        "✅ Cumplimiento",
                         f"{cumplimiento:.1f}%",
                         f"{cumplimiento - 100:.1f}%",
                         delta_color=cumpl_status
@@ -304,7 +304,7 @@ if file_tablero:
                 
                 with col4:
                     st.metric(
-                        "Destino Principal",
+                        "📍 Destino Principal",
                         destino_principal,
                         f"{num_viajes} viajes"
                     )
@@ -315,24 +315,21 @@ if file_tablero:
                 col_chart1, col_chart2 = st.columns([3, 2])
                 
                 with col_chart1:
-                    # Gráfico Combinado (Barras AGRUPADAS + Líneas)
-                    from plotly.subplots import make_subplots
-                    
+                    # Gráfico Combinado (AHORA DOS BARRAS AGRUPADAS)
                     fig_combinado = make_subplots(
                         rows=1, cols=2,
                         column_widths=[0.45, 0.45],
-                        specs=[[{"secondary_y": False}, {"secondary_y": True}]],
                         subplot_titles=("Toneladas", "Equipos"),
                         horizontal_spacing=0.15
                     )
                     
-                    # Barras para Toneladas Planificadas (subplot 1)
+                    # --- Subplot 1: TONELADAS (Barras) ---
                     fig_combinado.add_trace(
                         go.Bar(
                             name='Ton. Planificado',
                             x=[''],
                             y=[t_prog],
-                            marker_color='#A8D5BA',
+                            marker_color='#A8D5BA', # Verde claro
                             text=[f"{t_prog:,.0f}"],
                             textposition='outside',
                             showlegend=True
@@ -340,13 +337,12 @@ if file_tablero:
                         row=1, col=1
                     )
                     
-                    # Barras para Toneladas Reales (subplot 1)
                     fig_combinado.add_trace(
                         go.Bar(
                             name='Ton. Real',
                             x=[''],
                             y=[t_real],
-                            marker_color='#2E7D32',
+                            marker_color='#2E7D32', # Verde oscuro
                             text=[f"{t_real:,.0f}"],
                             textposition='outside',
                             showlegend=True
@@ -354,32 +350,28 @@ if file_tablero:
                         row=1, col=1
                     )
                     
-                    # Líneas para Equipos
-                    fig_combinado.add_trace(go.Scatter(
-                        name='Equipos Reales',
-                        x=['Equipos'],
-                        y=[e_real],
-                        mode='lines+markers+text',
-                        line=dict(color='#2F5597', width=4),
-                        marker=dict(size=15, color='#2F5597'),
-                        text=[f"{e_real:.0f}"],
-                        textposition='top center',
-                        textfont=dict(size=14, color='#2F5597'),
-                        yaxis='y2'
-                    ))
-                    
-                    fig_combinado.add_trace(go.Scatter(
-                        name='Equipos Planificados',
-                        x=['Equipos'],
+                    # --- Subplot 2: EQUIPOS (Ahora Barras también) ---
+                    # Equipos Planificados
+                    fig_combinado.add_trace(go.Bar(
+                        name='Eq. Planificado',
+                        x=[''],
                         y=[e_prog],
-                        mode='lines+markers+text',
-                        line=dict(color='#BDD7EE', width=4, dash='dash'),
-                        marker=dict(size=15, color='#BDD7EE', line=dict(width=2, color='#2F5597')),
+                        marker_color='#BDD7EE', # Azul claro
                         text=[f"{e_prog:.0f}"],
-                        textposition='top center',
-                        textfont=dict(size=14, color='#2F5597'),
-                        yaxis='y2'
-                    ))
+                        textposition='outside',
+                        showlegend=True
+                    ), row=1, col=2)
+                    
+                    # Equipos Reales
+                    fig_combinado.add_trace(go.Bar(
+                        name='Eq. Real',
+                        x=[''],
+                        y=[e_real],
+                        marker_color='#2F5597', # Azul oscuro
+                        text=[f"{e_real:.0f}"],
+                        textposition='outside',
+                        showlegend=True
+                    ), row=1, col=2)
                     
                     fig_combinado.update_layout(
                         title=dict(
@@ -388,33 +380,6 @@ if file_tablero:
                         ),
                         height=500,
                         margin=dict(t=80, b=50, l=70, r=90),
-                        xaxis=dict(
-                            domain=[0, 0.42],
-                            anchor='y',
-                            title="",
-                            tickfont=dict(size=14)
-                        ),
-                        xaxis2=dict(
-                            domain=[0.58, 1],
-                            anchor='y2',
-                            title="",
-                            tickfont=dict(size=14)
-                        ),
-                        yaxis=dict(
-                            title=dict(text="Toneladas", font=dict(size=14)),
-                            side='left',
-                            showgrid=True,
-                            gridcolor='rgba(200,200,200,0.3)',
-                            tickfont=dict(size=12)
-                        ),
-                        yaxis2=dict(
-                            title=dict(text="Equipos", font=dict(size=14)),
-                            side='right',
-                            overlaying='y',
-                            showgrid=False,
-                            rangemode="tozero", # <--- MEJORA: Eje comienza en 0
-                            tickfont=dict(size=12)
-                        ),
                         legend=dict(
                             orientation="h",
                             yanchor="bottom",
@@ -425,31 +390,30 @@ if file_tablero:
                         ),
                         plot_bgcolor='rgba(240,245,250,0.5)',
                         paper_bgcolor='white',
-                        barmode='group',
+                        barmode='group', # Esto agrupa las barras en ambos subplots
                         bargap=0.2
                     )
                     
-                    fig_combinado.update_traces(
-                        selector=dict(type='scatter'),
-                        xaxis='x2'
-                    )
+                    # Ajustar ejes Y para que siempre empiecen en 0
+                    fig_combinado.update_yaxes(title_text="Toneladas", row=1, col=1, side='left', showgrid=True)
+                    fig_combinado.update_yaxes(title_text="Equipos", row=1, col=2, side='right', showgrid=False)
                     
                     st.plotly_chart(fig_combinado, use_container_width=True)
                 
                 with col_chart2:
                     # Indicadores adicionales
-                    st.markdown("#### Indicadores Adicionales")
+                    st.markdown("#### 📊 Indicadores Adicionales")
                     
                     # Regulación
-                    st.metric("Regulación Real Promedio", f"{reg_promedio:.2f}%")
+                    st.metric("🎯 Regulación Real Promedio", f"{reg_promedio:.2f}%")
                     
                     # Eficiencia (ton por equipo)
                     eficiencia = t_real / e_real if e_real > 0 else 0
-                    st.metric("Productividad de Carga", f"{eficiencia:.1f} Ton/Equipo")
+                    st.metric("⚡ Eficiencia", f"{eficiencia:.1f} Ton/Equipo")
                     
                     # Desviación
                     desviacion_ton = ((t_real - t_prog) / t_prog * 100) if t_prog > 0 else 0
-                    st.metric("Desviación Tonelaje", f"{desviacion_ton:+.1f}%")
+                    st.metric("📈 Desviación Tonelaje", f"{desviacion_ton:+.1f}%")
                     
                     st.markdown("---")
                     
@@ -469,7 +433,7 @@ if file_tablero:
                 st.markdown("---")
                 
                 # Tabla de despachos detallada
-                st.markdown("#### Despachos por Destino")
+                st.markdown("#### 📋 Despachos por Destino")
                 
                 df_destinos = df_p.groupby('Destino').agg({
                     'Ton_Prog': 'sum',
@@ -503,7 +467,7 @@ if file_tablero:
         
         # Generar HTML Interactivo
         if generar_html:
-            with st.spinner("Generando reporte HTML interactivo..."):
+            with st.spinner("📊 Generando reporte HTML interactivo..."):
                 # Crear HTML con todos los gráficos
                 # NOTA: Para el reporte HTML descargable, usamos URLs públicas para que funcionen fuera de esta carpeta.
                 html_content = f"""
@@ -667,13 +631,13 @@ if file_tablero:
     <div class="container">
         <div class="header">
             <img src="https://logos-world.net/wp-content/uploads/2022/12/SQM-Logo.png" alt="SQM Logo" style="max-height: 80px;">
-            <h1>Reporte de Despachos por Producto</h1>
+            <h1>📊 Reporte de Despachos por Producto</h1>
             <p>Fecha: {fecha_sel.strftime('%d de %B de %Y')}</p>
             <p style="font-size: 0.9em; color: #999;">Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
         </div>
         
         <div class="section">
-            <h2 class="section-title">Indicadores Clave</h2>
+            <h2 class="section-title">📈 Indicadores Clave</h2>
             <div class="kpi-container">
                 <div class="kpi-card">
                     <div class="kpi-label">Tonelaje Total</div>
@@ -699,13 +663,13 @@ if file_tablero:
         </div>
         
         <div class="section">
-            <h2 class="section-title">Gráficos Comparativos</h2>
+            <h2 class="section-title">📊 Gráficos Comparativos</h2>
             <div id="grafico_toneladas"></div>
             <div id="grafico_cumplimiento"></div>
         </div>
         
         <div class="section">
-            <h2 class="section-title">Ranking de Productos</h2>
+            <h2 class="section-title">🏆 Ranking de Productos</h2>
             <table>
                 <thead>
                     <tr>
@@ -738,14 +702,14 @@ if file_tablero:
         </div>
         
         <div class="section">
-            <h2 class="section-title">Detalles por Producto</h2>
+            <h2 class="section-title">📦 Detalles por Producto</h2>
             <div class="tabs">
 """
                 
                 # Crear tabs
                 for idx, prod in enumerate(productos_ordenados):
                     active_class = "active" if idx == 0 else ""
-                    icon = " " if prod == "SLIT" else " "
+                    icon = "🔵" if prod == "SLIT" else "📦"
                     html_content += f'<button class="tab {active_class}" onclick="openTab(event, \'tab{idx}\')">{icon} {prod}</button>\n'
                 
                 html_content += """
@@ -849,9 +813,9 @@ if file_tablero:
 """
                 
                 # Descargar HTML
-                st.success("Reporte HTML generado exitosamente")
+                st.success("✅ Reporte HTML generado exitosamente")
                 st.download_button(
-                    label="Descargar Reporte HTML Interactivo",
+                    label="⬇️ Descargar Reporte HTML Interactivo",
                     data=html_content,
                     file_name=f"reporte_despachos_{fecha_sel.strftime('%Y%m%d')}.html",
                     mime="text/html",
@@ -859,11 +823,11 @@ if file_tablero:
                     use_container_width=True
                 )
                 
-                st.info("**Instrucciones:** Descarga el archivo y ábrelo en cualquier navegador. Todos los gráficos son interactivos (zoom, hover, etc.)")
+                st.info("💡 **Instrucciones:** Descarga el archivo y ábrelo en cualquier navegador. Todos los gráficos son interactivos (zoom, hover, etc.)")
         
         # Generar texto de correo
         if generar_correo:
-            with st.spinner("Generando texto de correo..."):
+            with st.spinner("✉️ Generando texto de correo..."):
                 # Identificar productos con alertas
                 productos_alerta = []
                 productos_ok = []
@@ -890,11 +854,11 @@ if file_tablero:
 </head>
 <body>
     <div class="header">
-        <h2>Reporte de Despachos - {fecha_sel.strftime('%d/%m/%Y')}</h2>
+        <h2>📊 Reporte de Despachos - {fecha_sel.strftime('%d/%m/%Y')}</h2>
         <p>Resumen Ejecutivo de Operaciones</p>
     </div>
     
-    <h3>Resumen Ejecutivo</h3>
+    <h3>📈 Resumen Ejecutivo</h3>
     
     <div class="kpi">
         <strong>Tonelaje Total Despachado:</strong> {total_ton_real:,.0f} toneladas<br>
@@ -921,7 +885,7 @@ if file_tablero:
 """
                 
                 correo_texto += """
-    <h3>Ranking de Productos</h3>
+    <h3>🏆 Ranking de Productos</h3>
     <table>
         <thead>
             <tr>
@@ -958,10 +922,10 @@ if file_tablero:
 </html>
 """
                 
-                st.success("Texto de correo generado")
+                st.success("✅ Texto de correo generado")
                 
                 # Mostrar preview
-                with st.expander("Vista Previa del Correo"):
+                with st.expander("👁️ Vista Previa del Correo"):
                     st.markdown(correo_texto, unsafe_allow_html=True)
                 
                 # Copiar al portapapeles
@@ -972,7 +936,7 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 """)
                 
                 st.download_button(
-                    label="Descargar HTML del Correo",
+                    label="⬇️ Descargar HTML del Correo",
                     data=correo_texto,
                     file_name=f"correo_reporte_{fecha_sel.strftime('%Y%m%d')}.html",
                     mime="text/html",
@@ -980,7 +944,7 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 )
                 
                 st.info("""
-**Instrucciones de uso:**
+💡 **Instrucciones de uso:**
 1. Copia el texto del asunto
 2. En tu cliente de correo, cambia a modo "HTML" o "Texto enriquecido"
 3. Pega el contenido HTML descargado
@@ -989,26 +953,25 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 """)
 
     except Exception as e:
-        st.error(f"Error en el procesamiento: {e}")
+        st.error(f"❌ Error en el procesamiento: {e}")
         with st.expander("Ver detalles del error"):
             import traceback
             st.code(traceback.format_exc())
 
 else:
-    st.info("**Bienvenido al Dashboard de Despachos**")
+    st.info("👋 **Bienvenido al Dashboard de Despachos**")
     st.markdown("""
-    ### Instrucciones:
+    ### 📋 Instrucciones:
     1. Sube el archivo Excel (.xlsm) usando el botón de arriba
     2. Selecciona la fecha a analizar en la barra lateral
     3. Explora el resumen general en la primera sección
     4. Navega por los tabs para ver detalles de cada producto
     
-    ### Características:
-    - **Resumen General**: KPIs consolidados y comparativas
-    - **Ranking**: Productos ordenados por desempeño
-    - **Tabs por Producto**: Navegación rápida y limpia
-    - **SLIT Prioritario**: Identificado claramente
-    - **Gráficos Interactivos**: Barras y líneas combinadas
-    - **Despachos Detallados**: Por destino en cada producto
+    ### ✨ Características:
+    - 📊 **Resumen General**: KPIs consolidados y comparativas
+    - 🏆 **Ranking**: Productos ordenados por desempeño
+    - 📑 **Tabs por Producto**: Navegación rápida y limpia
+    - 🔵 **SLIT Prioritario**: Identificado claramente
+    - 📈 **Gráficos Interactivos**: Barras y líneas combinadas
+    - 📋 **Despachos Detallados**: Por destino en cada producto
     """)
-
