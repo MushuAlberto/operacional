@@ -86,7 +86,7 @@ if file_tablero:
                 st.warning("Falta Image2024")
         
         # 3. Fecha Centrada
-        st.markdown(f"<h3 style='text-align: center;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: left;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -995,3 +995,4 @@ else:
     - 📈 **Gráficos Interactivos**: Barras y líneas combinadas
     - 📋 **Despachos Detallados**: Por destino en cada producto
     """)
+
