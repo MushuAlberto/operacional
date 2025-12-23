@@ -378,8 +378,8 @@ if file_tablero:
                             text=f"<b>Comparativa Toneladas vs Equipos</b>",
                             font=dict(size=16)
                         ),
-                        height=500,
-                        margin=dict(t=80, b=50, l=70, r=90),
+                        height=400,
+                        margin=dict(t=80, b=20, l=70, r=90),
                         legend=dict(
                             orientation="h",
                             yanchor="bottom",
@@ -390,15 +390,34 @@ if file_tablero:
                         ),
                         plot_bgcolor='rgba(240,245,250,0.5)',
                         paper_bgcolor='white',
-                        barmode='group', # Esto agrupa las barras en ambos subplots
+                        barmode='group',
                         bargap=0.2
                     )
                     
-                    # Ajustar ejes Y para que siempre empiecen en 0
                     fig_combinado.update_yaxes(title_text="Toneladas", row=1, col=1, side='left', showgrid=True)
                     fig_combinado.update_yaxes(title_text="Equipos", row=1, col=2, side='right', showgrid=False)
                     
                     st.plotly_chart(fig_combinado, use_container_width=True)
+
+                    # --- LEYENDA DETALLADA CON VALORES ---
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 5px;">
+                        <!-- Box Toneladas -->
+                        <div style="background-color: #f0f7f0; padding: 10px; border-radius: 8px; border-left: 5px solid #2E7D32; width: 48%;">
+                            <strong style="color: #2E7D32; font-size: 1.1em;">TONELADAS</strong><br>
+                            <span style="color: #A8D5BA;">■</span> Planificado: <strong>{t_prog:,.0f}</strong><br>
+                            <span style="color: #2E7D32;">■</span> Real: <strong>{t_real:,.0f}</strong> 
+                            <span style="font-size: 0.9em; color: {'#d32f2f' if (t_real-t_prog) < 0 else '#388e3c'};">({t_real-t_prog:+,.0f})</span>
+                        </div>
+                        <!-- Box Equipos -->
+                        <div style="background-color: #f0f4f8; padding: 10px; border-radius: 8px; border-left: 5px solid #2F5597; width: 48%;">
+                            <strong style="color: #2F5597; font-size: 1.1em;">EQUIPOS</strong><br>
+                            <span style="color: #BDD7EE;">■</span> Planificado: <strong>{e_prog:.0f}</strong><br>
+                            <span style="color: #2F5597;">■</span> Real: <strong>{e_real:.0f}</strong>
+                            <span style="font-size: 0.9em; color: {'#d32f2f' if (e_real-e_prog) < 0 else '#1976D2'};">({e_real-e_prog:+.0f})</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 with col_chart2:
                     # Indicadores adicionales
