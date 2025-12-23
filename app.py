@@ -319,7 +319,7 @@ if file_tablero:
                     fig_combinado = make_subplots(
                         rows=1, cols=2,
                         column_widths=[0.45, 0.45],
-                        subplot_titles=("Toneladas", "Equipos"),
+                        # subplot_titles=("Toneladas", "Equipos"), # <--- ELIMINADO para quitar los textos de arriba
                         horizontal_spacing=0.15
                     )
                     
