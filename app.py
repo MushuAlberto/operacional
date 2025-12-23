@@ -10,16 +10,16 @@ from plotly.subplots import make_subplots
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Reporte Priorizado SLIT", layout="wide")
 
-st.title("Dashboard de Despachos por Producto")
+st.title("📊 Dashboard de Despachos por Producto")
 
 # Botones de exportación en la parte superior
 col_export1, col_export2, col_export3 = st.columns([1, 1, 2])
 
 with col_export1:
-    generar_html = st.button("Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
+    generar_html = st.button("📊 Generar Reporte HTML Interactivo", type="primary", use_container_width=True)
 
 with col_export2:
-    generar_correo = st.button("Generar Texto de Correo", use_container_width=True)
+    generar_correo = st.button("✉️ Generar Texto de Correo", use_container_width=True)
 
 st.markdown("---")
 
@@ -61,12 +61,12 @@ if file_tablero:
         # SECCIÓN 1: RESUMEN GENERAL DE LA JORNADA
         # ========================================
         
-        # 1. Título Centrado usando HTML
-        st.markdown(f"<h2 style='text-align: center;'>RESUMEN GENERAL DE LA JORNADA</h2>", unsafe_allow_html=True)
+        # 1. Título Centrado
+        st.markdown(f"<h2 style='text-align: center;'>📊 RESUMEN GENERAL DE LA JORNADA</h2>", unsafe_allow_html=True)
         
-        # 2. Logos alineados a los extremos (Izquierda y Derecha)
-        # Usamos [2, 6, 3] -> Columna izquierda, Espacio grande vacío, Columna derecha
-        col_img_izq, col_espacio, col_img_der = st.columns([2, 6, 3])
+        # 2. Logos alineados verticalmente al CENTRO
+        # AGREGADO: vertical_alignment="center" para que los logos queden a la misma altura visual
+        col_img_izq, col_espacio, col_img_der = st.columns([2, 6, 3], vertical_alignment="center")
         
         with col_img_izq:
             # Logo SQM a la izquierda
@@ -77,7 +77,7 @@ if file_tablero:
             
         with col_img_der:
             # Logo Somos Futuro a la derecha
-            # Usamos un div con text-align right para asegurar que la imagen se pegue al borde derecho
+            # El div asegura que se pegue a la derecha
             try:
                 st.markdown('<div style="text-align: right;">', unsafe_allow_html=True)
                 st.image("Image20240314124309.png", width=250)
@@ -85,8 +85,8 @@ if file_tablero:
             except:
                 st.warning("Falta Image2024")
         
-        # 3. Fecha Centrada (Opcional, para simetría con el título)
-        st.markdown(f"<h3 style='text-align: left;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
+        # 3. Fecha Centrada
+        st.markdown(f"<h3 style='text-align: center;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -99,7 +99,7 @@ if file_tablero:
         num_productos = len(productos_ordenados)
         
         # KPIs Totales
-        st.markdown("### Indicadores Generales")
+        st.markdown("### 📈 Indicadores Generales")
         col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
@@ -154,7 +154,7 @@ if file_tablero:
         df_resumen = pd.DataFrame(resumen_productos)
         
         # Gráfico Comparativo General
-        st.markdown("### Comparativa por Producto")
+        st.markdown("### 📊 Comparativa por Producto")
         
         col_g1, col_g2 = st.columns(2)
         
@@ -216,7 +216,7 @@ if file_tablero:
             st.plotly_chart(fig_cumplimiento, use_container_width=True)
         
         # Ranking de Productos
-        st.markdown("### Ranking de Productos")
+        st.markdown("### 🏆 Ranking de Productos")
         
         df_ranking = df_resumen.copy()
         df_ranking['Diferencia'] = df_ranking['Ton_Real'] - df_ranking['Ton_Prog']
@@ -243,16 +243,16 @@ if file_tablero:
         # ========================================
         # SECCIÓN 2: DETALLES POR PRODUCTO (TABS)
         # ========================================
-        st.header("DETALLES POR PRODUCTO")
+        st.header("📦 DETALLES POR PRODUCTO")
         st.markdown("Seleccione un producto para ver su análisis detallado")
         
         # Crear tabs dinámicos
         tab_names = []
         for prod in productos_ordenados:
             if prod == "SLIT":
-                tab_names.append(f"{prod}")
+                tab_names.append(f"🔵 {prod}")
             else:
-                tab_names.append(f"{prod}")
+                tab_names.append(f"📦 {prod}")
         
         tabs = st.tabs(tab_names)
         
@@ -275,7 +275,7 @@ if file_tablero:
                 
                 # Header del producto
                 if prod == "SLIT":
-                    st.markdown("### PRODUCTO PRIORITARIO")
+                    st.markdown("### 🔵 PRODUCTO PRIORITARIO")
                 else:
                     st.markdown(f"### Análisis de {prod}")
                 
@@ -288,7 +288,7 @@ if file_tablero:
                     delta_ton = t_real - t_prog
                     delta_color = "normal" if abs(delta_ton) < (t_prog * 0.05) else ("inverse" if delta_ton < 0 else "normal")
                     st.metric(
-                        "Tonelaje Real",
+                        "📊 Tonelaje Real",
                         f"{t_real:,.0f} Ton",
                         f"{delta_ton:+,.0f} vs Prog",
                         delta_color=delta_color
@@ -297,7 +297,7 @@ if file_tablero:
                 with col2:
                     delta_eq = e_real - e_prog
                     st.metric(
-                        "Equipos Real",
+                        "🚛 Equipos Real",
                         f"{e_real:.0f}",
                         f"{delta_eq:+.0f} vs Prog"
                     )
@@ -305,7 +305,7 @@ if file_tablero:
                 with col3:
                     cumpl_status = "normal" if cumplimiento >= 95 else "inverse"
                     st.metric(
-                        "Cumplimiento",
+                        "✅ Cumplimiento",
                         f"{cumplimiento:.1f}%",
                         f"{cumplimiento - 100:.1f}%",
                         delta_color=cumpl_status
@@ -313,7 +313,7 @@ if file_tablero:
                 
                 with col4:
                     st.metric(
-                        "Destino Principal",
+                        "📍 Destino Principal",
                         destino_principal,
                         f"{num_viajes} viajes"
                     )
@@ -328,7 +328,7 @@ if file_tablero:
                     fig_combinado = make_subplots(
                         rows=1, cols=2,
                         column_widths=[0.45, 0.45],
-                        # subplot_titles=("Toneladas", "Equipos"), # <--- ELIMINADO para quitar los textos de arriba
+                        # subplot_titles=("Toneladas", "Equipos"), # ELIMINADO: Títulos de subplots
                         horizontal_spacing=0.15
                     )
                     
@@ -422,18 +422,18 @@ if file_tablero:
                 
                 with col_chart2:
                     # Indicadores adicionales
-                    st.markdown("#### Indicadores Adicionales")
+                    st.markdown("#### 📊 Indicadores Adicionales")
                     
                     # Regulación
-                    st.metric("Regulación Real Promedio", f"{reg_promedio:.2f}%")
+                    st.metric("🎯 Regulación Real Promedio", f"{reg_promedio:.2f}%")
                     
                     # Eficiencia (ton por equipo)
                     eficiencia = t_real / e_real if e_real > 0 else 0
-                    st.metric("Promedio de Carga", f"{eficiencia:.1f} Ton/Equipo")
+                    st.metric("⚡ Eficiencia", f"{eficiencia:.1f} Ton/Equipo")
                     
                     # Desviación
                     desviacion_ton = ((t_real - t_prog) / t_prog * 100) if t_prog > 0 else 0
-                    st.metric("Desviación Tonelaje", f"{desviacion_ton:+.1f}%")
+                    st.metric("📈 Desviación Tonelaje", f"{desviacion_ton:+.1f}%")
                     
                     st.markdown("---")
                     
@@ -448,12 +448,12 @@ if file_tablero:
                         st.error("🔴 Bajo cumplimiento - Requiere atención")
                     
                     if abs(desviacion_ton) > 10:
-                        st.info(f"Desviación significativa: {desviacion_ton:+.1f}%")
+                        st.info(f"📊 Desviación significativa: {desviacion_ton:+.1f}%")
                 
                 st.markdown("---")
                 
                 # Tabla de despachos detallada
-                st.markdown("#### Despachos por Destino")
+                st.markdown("#### 📋 Despachos por Destino")
                 
                 df_destinos = df_p.groupby('Destino').agg({
                     'Ton_Prog': 'sum',
@@ -487,7 +487,7 @@ if file_tablero:
         
         # Generar HTML Interactivo
         if generar_html:
-            with st.spinner("Generando reporte HTML interactivo..."):
+            with st.spinner("📊 Generando reporte HTML interactivo..."):
                 # Crear HTML con todos los gráficos
                 # NOTA: Para el reporte HTML descargable, usamos URLs públicas para que funcionen fuera de esta carpeta.
                 html_content = f"""
@@ -657,7 +657,7 @@ if file_tablero:
         </div>
         
         <div class="section">
-            <h2 class="section-title">Indicadores Clave</h2>
+            <h2 class="section-title">📈 Indicadores Clave</h2>
             <div class="kpi-container">
                 <div class="kpi-card">
                     <div class="kpi-label">Tonelaje Total</div>
@@ -683,13 +683,13 @@ if file_tablero:
         </div>
         
         <div class="section">
-            <h2 class="section-title">Gráficos Comparativos</h2>
+            <h2 class="section-title">📊 Gráficos Comparativos</h2>
             <div id="grafico_toneladas"></div>
             <div id="grafico_cumplimiento"></div>
         </div>
         
         <div class="section">
-            <h2 class="section-title">Ranking de Productos</h2>
+            <h2 class="section-title">🏆 Ranking de Productos</h2>
             <table>
                 <thead>
                     <tr>
@@ -722,14 +722,14 @@ if file_tablero:
         </div>
         
         <div class="section">
-            <h2 class="section-title">Detalles por Producto</h2>
+            <h2 class="section-title">📦 Detalles por Producto</h2>
             <div class="tabs">
 """
                 
                 # Crear tabs
                 for idx, prod in enumerate(productos_ordenados):
                     active_class = "active" if idx == 0 else ""
-                    icon = " " if prod == "SLIT" else " "
+                    icon = "🔵" if prod == "SLIT" else "📦"
                     html_content += f'<button class="tab {active_class}" onclick="openTab(event, \'tab{idx}\')">{icon} {prod}</button>\n'
                 
                 html_content += """
@@ -833,9 +833,9 @@ if file_tablero:
 """
                 
                 # Descargar HTML
-                st.success("Reporte HTML generado exitosamente")
+                st.success("✅ Reporte HTML generado exitosamente")
                 st.download_button(
-                    label="Descargar Reporte HTML Interactivo",
+                    label="⬇️ Descargar Reporte HTML Interactivo",
                     data=html_content,
                     file_name=f"reporte_despachos_{fecha_sel.strftime('%Y%m%d')}.html",
                     mime="text/html",
@@ -843,11 +843,11 @@ if file_tablero:
                     use_container_width=True
                 )
                 
-                st.info("**Instrucciones:** Descarga el archivo y ábrelo en cualquier navegador. Todos los gráficos son interactivos (zoom, hover, etc.)")
+                st.info("💡 **Instrucciones:** Descarga el archivo y ábrelo en cualquier navegador. Todos los gráficos son interactivos (zoom, hover, etc.)")
         
         # Generar texto de correo
         if generar_correo:
-            with st.spinner("Generando texto de correo..."):
+            with st.spinner("✉️ Generando texto de correo..."):
                 # Identificar productos con alertas
                 productos_alerta = []
                 productos_ok = []
@@ -874,11 +874,11 @@ if file_tablero:
 </head>
 <body>
     <div class="header">
-        <h2>Reporte de Despachos - {fecha_sel.strftime('%d/%m/%Y')}</h2>
+        <h2>📊 Reporte de Despachos - {fecha_sel.strftime('%d/%m/%Y')}</h2>
         <p>Resumen Ejecutivo de Operaciones</p>
     </div>
     
-    <h3>Resumen Ejecutivo</h3>
+    <h3>📈 Resumen Ejecutivo</h3>
     
     <div class="kpi">
         <strong>Tonelaje Total Despachado:</strong> {total_ton_real:,.0f} toneladas<br>
@@ -905,7 +905,7 @@ if file_tablero:
 """
                 
                 correo_texto += """
-    <h3>Ranking de Productos</h3>
+    <h3>🏆 Ranking de Productos</h3>
     <table>
         <thead>
             <tr>
@@ -942,10 +942,10 @@ if file_tablero:
 </html>
 """
                 
-                st.success("Texto de correo generado")
+                st.success("✅ Texto de correo generado")
                 
                 # Mostrar preview
-                with st.expander("Vista Previa del Correo"):
+                with st.expander("👁️ Vista Previa del Correo"):
                     st.markdown(correo_texto, unsafe_allow_html=True)
                 
                 # Copiar al portapapeles
@@ -956,7 +956,7 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 """)
                 
                 st.download_button(
-                    label="Descargar HTML del Correo",
+                    label="⬇️ Descargar HTML del Correo",
                     data=correo_texto,
                     file_name=f"correo_reporte_{fecha_sel.strftime('%Y%m%d')}.html",
                     mime="text/html",
@@ -964,7 +964,7 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 )
                 
                 st.info("""
-**Instrucciones de uso:**
+💡 **Instrucciones de uso:**
 1. Copia el texto del asunto
 2. En tu cliente de correo, cambia a modo "HTML" o "Texto enriquecido"
 3. Pega el contenido HTML descargado
@@ -973,26 +973,25 @@ Asunto: Reporte de Despachos {fecha_sel.strftime('%d/%m/%Y')} - Cumplimiento {cu
                 """)
 
     except Exception as e:
-        st.error(f"Error en el procesamiento: {e}")
+        st.error(f"❌ Error en el procesamiento: {e}")
         with st.expander("Ver detalles del error"):
             import traceback
             st.code(traceback.format_exc())
 
 else:
-    st.info("**Bienvenido al Dashboard de Despachos**")
+    st.info("👋 **Bienvenido al Dashboard de Despachos**")
     st.markdown("""
-    ### Instrucciones:
+    ### 📋 Instrucciones:
     1. Sube el archivo Excel (.xlsm) usando el botón de arriba
     2. Selecciona la fecha a analizar en la barra lateral
     3. Explora el resumen general en la primera sección
     4. Navega por los tabs para ver detalles de cada producto
     
-    ### Características:
-    - **Resumen General**: KPIs consolidados y comparativas
-    - **Ranking**: Productos ordenados por desempeño
-    - **Tabs por Producto**: Navegación rápida y limpia
-    - **SLIT Prioritario**: Identificado claramente
-    - **Gráficos Interactivos**: Barras y líneas combinadas
-    - **Despachos Detallados**: Por destino en cada producto
+    ### ✨ Características:
+    - 📊 **Resumen General**: KPIs consolidados y comparativas
+    - 🏆 **Ranking**: Productos ordenados por desempeño
+    - 📑 **Tabs por Producto**: Navegación rápida y limpia
+    - 🔵 **SLIT Prioritario**: Identificado claramente
+    - 📈 **Gráficos Interactivos**: Barras y líneas combinadas
+    - 📋 **Despachos Detallados**: Por destino en cada producto
     """)
-
