@@ -27,7 +27,6 @@ file_tablero = st.file_uploader("Cargar 03.- Tablero Despachos (.xlsm)", type=["
 if file_tablero:
     try:
         # 1. Carga de datos
-        # Nota: Si el archivo es muy pesado, considera usar @st.cache_data aquí en el futuro
         cols_idx = [1, 31, 32, 33, 34, 35, 36, 46]
         df = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_idx, engine='openpyxl')
         df.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Eq_Prog', 'Eq_Real', 'Regulacion_Real']
@@ -62,17 +61,21 @@ if file_tablero:
         # ========================================
         st.header(f"📊 RESUMEN GENERAL DE LA JORNADA")
         
-        # --- INICIO: SECCIÓN DE IMÁGENES LOGOS ---
-        # Se agregan los logos solicitados
+        # --- INICIO: SECCIÓN DE IMÁGENES LOGOS (LOCALES) ---
         col_img1, col_img2, col_espacio = st.columns([1, 2, 4])
         
         with col_img1:
-            # Logo SQM (URL pública estable)
-            st.image("https://logos-world.net/wp-content/uploads/2022/12/SQM-Logo.png", width=120)
+            # Intenta cargar la imagen local, si falla no muestra error crítico
+            try:
+                st.image("logoSQM-li-90.png", width=120)
+            except:
+                st.warning("No se encontró logoSQM-li-90.png")
             
         with col_img2:
-            # Logo Somos Litio, Somos Futuro (URL pública estable)
-            st.image("https://www.sqm.com/wp-content/uploads/2023/04/logo-somos-litio-somos-futuro.png", width=250)
+            try:
+                st.image("Image20240314124309.png", width=250)
+            except:
+                st.warning("No se encontró Image20240314124309.png")
         # --- FIN: SECCIÓN DE IMÁGENES LOGOS ---
         
         st.subheader(f"📅 {fecha_sel.strftime('%d-%m-%Y')}")
@@ -502,6 +505,7 @@ if file_tablero:
         if generar_html:
             with st.spinner("📊 Generando reporte HTML interactivo..."):
                 # Crear HTML con todos los gráficos
+                # NOTA: Para el reporte HTML descargable, usamos URLs públicas para que funcionen fuera de esta carpeta.
                 html_content = f"""
 <!DOCTYPE html>
 <html lang="es">
