@@ -27,6 +27,7 @@ file_tablero = st.file_uploader("Cargar 03.- Tablero Despachos (.xlsm)", type=["
 if file_tablero:
     try:
         # 1. Carga de datos
+        # Nota: Si el archivo es muy pesado, considera usar @st.cache_data aquí en el futuro
         cols_idx = [1, 31, 32, 33, 34, 35, 36, 46]
         df = pd.read_excel(file_tablero, sheet_name="Base de Datos", usecols=cols_idx, engine='openpyxl')
         df.columns = ['Fecha', 'Producto', 'Destino', 'Ton_Prog', 'Ton_Real', 'Eq_Prog', 'Eq_Real', 'Regulacion_Real']
@@ -36,6 +37,11 @@ if file_tablero:
         df = df.dropna(subset=['Fecha'])
         df['Producto'] = df['Producto'].astype(str).str.upper().str.strip()
         df['Destino'] = df['Destino'].astype(str).str.strip()
+        
+        # Asegurar tipos numéricos
+        cols_num = ['Ton_Prog', 'Ton_Real', 'Eq_Prog', 'Eq_Real', 'Regulacion_Real']
+        for col in cols_num:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
         # 2. Selección de Fecha
         fechas_disp = sorted(df['Fecha'].unique(), reverse=True)
@@ -55,6 +61,20 @@ if file_tablero:
         # SECCIÓN 1: RESUMEN GENERAL DE LA JORNADA
         # ========================================
         st.header(f"📊 RESUMEN GENERAL DE LA JORNADA")
+        
+        # --- INICIO: SECCIÓN DE IMÁGENES LOGOS ---
+        # Se agregan los logos solicitados
+        col_img1, col_img2, col_espacio = st.columns([1, 2, 4])
+        
+        with col_img1:
+            # Logo SQM (URL pública estable)
+            st.image("https://logos-world.net/wp-content/uploads/2022/12/SQM-Logo.png", width=120)
+            
+        with col_img2:
+            # Logo Somos Litio, Somos Futuro (URL pública estable)
+            st.image("https://www.sqm.com/wp-content/uploads/2023/04/logo-somos-litio-somos-futuro.png", width=250)
+        # --- FIN: SECCIÓN DE IMÁGENES LOGOS ---
+        
         st.subheader(f"📅 {fecha_sel.strftime('%d-%m-%Y')}")
         st.markdown("---")
         
@@ -389,6 +409,7 @@ if file_tablero:
                             side='right',
                             overlaying='y',
                             showgrid=False,
+                            rangemode="tozero", # <--- MEJORA: Eje comienza en 0
                             tickfont=dict(size=12)
                         ),
                         legend=dict(
@@ -466,7 +487,6 @@ if file_tablero:
                 df_destinos_display['Eq_Real'] = df_destinos_display['Eq_Real'].apply(lambda x: f"{x:.0f}")
                 df_destinos_display['Cumplimiento'] = df_destinos_display['Cumplimiento'].apply(lambda x: f"{x:.1f}%")
                 
-                # --- CORRECCIÓN REALIZADA AQUÍ: Se eliminaron los espacios excesivos ---
                 st.dataframe(
                     df_destinos_display,
                     use_container_width=True,
@@ -642,6 +662,7 @@ if file_tablero:
 <body>
     <div class="container">
         <div class="header">
+            <img src="https://logos-world.net/wp-content/uploads/2022/12/SQM-Logo.png" alt="SQM Logo" style="max-height: 80px;">
             <h1>📊 Reporte de Despachos por Producto</h1>
             <p>Fecha: {fecha_sel.strftime('%d de %B de %Y')}</p>
             <p style="font-size: 0.9em; color: #999;">Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
