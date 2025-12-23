@@ -60,25 +60,34 @@ if file_tablero:
         # ========================================
         # SECCIÓN 1: RESUMEN GENERAL DE LA JORNADA
         # ========================================
-        st.header(f"📊 RESUMEN GENERAL DE LA JORNADA")
         
-        # --- INICIO: SECCIÓN DE IMÁGENES LOGOS (LOCALES) ---
-        col_img1, col_img2, col_espacio = st.columns([1, 2, 4])
+        # 1. Título Centrado usando HTML
+        st.markdown(f"<h2 style='text-align: center;'>📊 RESUMEN GENERAL DE LA JORNADA</h2>", unsafe_allow_html=True)
         
-        with col_img1:
+        # 2. Logos alineados a los extremos (Izquierda y Derecha)
+        # Usamos [2, 6, 3] -> Columna izquierda, Espacio grande vacío, Columna derecha
+        col_img_izq, col_espacio, col_img_der = st.columns([2, 6, 3])
+        
+        with col_img_izq:
+            # Logo SQM a la izquierda
             try:
                 st.image("logoSQM-li-90.png", width=120)
             except:
-                st.warning("Falta logoSQM-li-90.png")
+                st.warning("Falta logoSQM")
             
-        with col_img2:
+        with col_img_der:
+            # Logo Somos Futuro a la derecha
+            # Usamos un div con text-align right para asegurar que la imagen se pegue al borde derecho
             try:
+                st.markdown('<div style="text-align: right;">', unsafe_allow_html=True)
                 st.image("Image20240314124309.png", width=250)
+                st.markdown('</div>', unsafe_allow_html=True)
             except:
-                st.warning("Falta Image20240314124309.png")
-        # --- FIN: SECCIÓN DE IMÁGENES LOGOS ---
+                st.warning("Falta Image2024")
         
-        st.subheader(f"📅 {fecha_sel.strftime('%d-%m-%Y')}")
+        # 3. Fecha Centrada (Opcional, para simetría con el título)
+        st.markdown(f"<h3 style='text-align: center;'>📅 {fecha_sel.strftime('%d-%m-%Y')}</h3>", unsafe_allow_html=True)
+        
         st.markdown("---")
         
         # Calcular totales
