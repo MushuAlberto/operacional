@@ -330,8 +330,6 @@ if file_tablero:
                             x=[''],
                             y=[t_prog],
                             marker_color='#A8D5BA', # Verde claro
-                            text=[f"{t_prog:,.0f}"],
-                            textposition='outside',
                             showlegend=True
                         ),
                         row=1, col=1
@@ -343,8 +341,6 @@ if file_tablero:
                             x=[''],
                             y=[t_real],
                             marker_color='#2E7D32', # Verde oscuro
-                            text=[f"{t_real:,.0f}"],
-                            textposition='outside',
                             showlegend=True
                         ),
                         row=1, col=1
@@ -357,8 +353,6 @@ if file_tablero:
                         x=[''],
                         y=[e_prog],
                         marker_color='#BDD7EE', # Azul claro
-                        text=[f"{e_prog:.0f}"],
-                        textposition='outside',
                         showlegend=True
                     ), row=1, col=2)
                     
@@ -368,8 +362,6 @@ if file_tablero:
                         x=[''],
                         y=[e_real],
                         marker_color='#2F5597', # Azul oscuro
-                        text=[f"{e_real:.0f}"],
-                        textposition='outside',
                         showlegend=True
                     ), row=1, col=2)
                     
