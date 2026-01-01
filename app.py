@@ -9,7 +9,7 @@ from plotly.subplots import make_subplots
 import os
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Reporte Priorizado SLIT", layout="wide")
+st.set_page_config(page_title="RESUMEN GENERAL DE LA JORNADA", layout="wide")
 
 # --- FUNCIÓN AUXILIAR PARA EL LOGO EN HTML ---
 def get_img_as_base64(file_path):
@@ -717,3 +717,4 @@ if file_tablero:
 else:
     st.info("**Bienvenido al Dashboard de Despachos**")
     st.markdown("### Instrucciones:\n1. Sube el archivo Excel.\n2. Selecciona la fecha.\n3. Genera los reportes.")
+
