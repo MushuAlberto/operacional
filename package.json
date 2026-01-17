@@ -1,25 +1,35 @@
+
 {
-  "name": "informe-operacional-despacho-litio",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "litio-dashboard-app",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión Logística SQM",
+  "main": "main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
   },
-  "dependencies": {
-    "recharts": "^3.6.0",
-    "lucide-react": "^0.562.0",
-    "react-dom": "^19.2.3",
-    "@google/genai": "^1.34.0",
-    "react": "^19.2.3",
-    "xlsx": "^0.18.5"
-  },
+  "author": "Logística SQM",
+  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.sqm.litiodashboard",
+    "productName": "Litio Dashboard",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
   }
 }

@@ -1,34 +1,40 @@
 
-# 📊 Litio Dashboard (Streamlit Edition)
+# 🚀 Guía de Despliegue: Litio Dashboard SQM
 
-Esta es una aplicación de análisis logístico inteligente diseñada para la gestión de despachos de litio. Aunque utiliza **React** en el frontend, su interfaz ha sido adaptada para emular la experiencia de usuario de **Streamlit (Python)**.
+Este proyecto está diseñado para funcionar como una aplicación web moderna (PWA) que se puede instalar en Windows, Mac o Linux directamente desde el navegador.
 
-## ✨ Características
+## 📦 Despliegue en Vercel (Paso a Paso)
 
-- **Carga de Archivos**: Procesa bases de datos en formato Excel (.xlsx, .xlsm).
-- **IA Generativa**: Integración con Google Gemini API para análisis de insights operativos.
-- **Visualización Dinámica**: Gráficos interactivos usando Recharts.
-- **Exportación**: Generación de informes profesionales en PDF.
-- **UI/UX**: Estética limpia inspirada en Streamlit.
+1. **Subir a GitHub**: 
+   - Sube todos los archivos de este directorio a un repositorio de GitHub.
+   - Asegúrate de incluir `index.html`, `index.tsx`, `vercel.json`, `manifest.json` y `sw.js`.
 
-## 🚀 Instalación y Configuración
+2. **Conectar a Vercel**:
+   - Entra en [Vercel](https://vercel.com).
+   - Haz clic en **Import Project** y selecciona tu repositorio.
 
-1. **Clonar el repositorio**:
-   ```bash
-   git clone https://github.com/tu-usuario/litio-dashboard.git
-   ```
+3. **Variables de Entorno (Obligatorio)**:
+   - En el panel de configuración de Vercel, ve a **Environment Variables**.
+   - Agrega una nueva variable:
+     - **Nombre (Key):** `API_KEY`
+     - **Valor (Value):** `TU_CLAVE_DE_GEMINI` (Consíguela en [Google AI Studio](https://aistudio.google.com/)).
 
-2. **Configurar la API Key**:
-   Para que el análisis de IA funcione, necesitas una clave de API de Google Gemini.
-   - Crea un archivo `.env` en la raíz del proyecto.
-   - Añade tu clave: `API_KEY=tu_clave_aqui`
+4. **Configuración de Build**:
+   - Como usamos **ES6 Modules e Import Maps**, no necesitas comandos de compilación. Vercel servirá los archivos estáticos directamente.
 
-3. **Despliegue**:
-   Puedes desplegarlo fácilmente en **Vercel** o **Netlify**. Asegúrate de configurar la variable de entorno `API_KEY` en el panel de control de la plataforma de despliegue.
+## 🖥️ Cómo instalar como App de PC
 
-## 🛡️ Seguridad
+Una vez desplegado en tu URL de Vercel (ej. `https://mi-proyecto.vercel.app`):
 
-Este proyecto utiliza variables de entorno para manejar la `API_KEY`. Nunca compartas tu archivo `.env` ni lo subas a repositorios públicos.
+1. **Abre la URL** en Chrome o Edge.
+2. **Instala la App**:
+   - En la barra de direcciones verás un icono de una pantalla con un "+" o una flecha.
+   - Haz clic en **"Instalar Litio Dashboard"**.
+3. **Uso Nativo**:
+   - La aplicación aparecerá en tu Inicio de Windows o Aplicaciones de Mac.
+   - Se abrirá en una ventana propia sin barras de navegador, permitiendo subir archivos Excel locales y generar reportes PDF.
 
----
-*Hecho con ❤️ para la optimización logística.*
+## 🛠️ Archivos Clave para el Hosting
+- `vercel.json`: Gestiona las rutas y asegura que el Service Worker (`sw.js`) tenga los permisos correctos.
+- `manifest.json`: Define el icono y el comportamiento de la "ventana" de la aplicación.
+- `sw.js`: Permite que la app cargue más rápido y tenga soporte básico offline.

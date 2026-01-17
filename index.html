@@ -4,17 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Litio Dashboard • Streamlit</title>
+    <title>Litio Dashboard • SQM</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    <!-- Librería html2pdf.js bundle -->
+    
+    <!-- Librerías de exportación -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- Librería html2canvas para capturas de imagen -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- Librería jsPDF independiente para mayor control de páginas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+      // Shim para permitir que process.env.API_KEY funcione en el navegador sin errores
+      window.process = {
+        env: {
+          API_KEY: "" // Vercel inyectará el valor real si está configurado en el panel
+        }
+      };
+    </script>
+
     <style>
         body {
             font-family: 'Source Sans Pro', sans-serif;
@@ -22,6 +39,7 @@
             margin: 0;
             padding: 0;
             color: #262730;
+            user-select: none;
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -33,11 +51,7 @@
             background: #d3d3d3;
             border-radius: 4px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #c0c0c0;
-        }
         
-        /* Estilos específicos para asegurar exportación limpia */
         #dashboard-report {
             background-color: #ffffff !important;
             color: #1e293b !important;
@@ -47,22 +61,11 @@
             background-color: white !important;
         }
 
-        .pdf-export-container * {
-            background-color: transparent;
-        }
-
-        /* Forzar fondos blancos en contenedores específicos */
-        .bg-white {
-            background-color: #ffffff !important;
-        }
-
-        /* Forzar que no haya saltos de página en elementos críticos */
         .no-page-break {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
         }
 
-        /* Forzar salto de página ANTES del elemento */
         .page-break-before {
             page-break-before: always !important;
             break-before: page !important;
@@ -71,30 +74,40 @@
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
-            #dashboard-report { 
-                padding: 0 !important; 
-                margin: 0 !important;
-                width: 100% !important;
-            }
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "xlsx": "https://esm.sh/xlsx@^0.18.5"
-  }
-}
-</script>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "recharts": "https://esm.sh/recharts@^3.6.0",
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "xlsx": "https://esm.sh/xlsx@^0.18.5"
+      }
+    }
+    </script>
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>
+    
+    <!-- CARGA DE LA APLICACIÓN -->
+    <script type="module" src="index.tsx"></script>
+
+    <script>
+        // Registro del Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('App lista para instalar.'))
+                    .catch(err => console.log('Error en registro:', err));
+            });
+        }
+    </script>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>

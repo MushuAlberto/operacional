@@ -10,6 +10,9 @@ import ChartCard from './components/ChartCard';
 import ProductDetailSection from './components/ProductDetailSection';
 import MainMenu from './components/MainMenu';
 import LlegadaEquipos from './components/LlegadaEquipos';
+import ReportFooter from './components/ReportFooter';
+
+const LOGO_SQM = "https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg";
 
 interface UserChartConfig {
   type: 'bar' | 'line' | 'pie' | 'area';
@@ -199,9 +202,10 @@ const App: React.FC = () => {
             <Home size={14} className="group-hover:-translate-x-1 transition-transform" /> Menú Principal
           </button>
 
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-3xl">📊</span>
-            <h1 className="font-bold text-xl tracking-tight">Litio Dashboard</h1>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col items-center gap-3 shadow-sm">
+            <img src={LOGO_SQM} alt="SQM Lithium Logo" className="h-8 w-auto object-contain" crossOrigin="anonymous" />
+            <div className="h-px w-full bg-slate-100" />
+            <h1 className="font-black text-sm tracking-widest uppercase text-slate-800">Litio Dashboard</h1>
           </div>
 
           <div className="space-y-2">
@@ -241,10 +245,9 @@ const App: React.FC = () => {
         </div>
 
         <div className="p-4 border-t border-slate-200 text-[10px] text-slate-400 flex items-center justify-between">
-          <span>v3.2.0-Multi-Module</span>
+          <span>v3.4.0-Official-Branding</span>
           <div className="flex items-center gap-1">
-            <span>Made with</span>
-            <span className="text-rose-500">❤️</span>
+            <span>SQM S.A.</span>
           </div>
         </div>
       </aside>
@@ -263,8 +266,8 @@ const App: React.FC = () => {
           
           {rawData.length === 0 ? (
             <div className="py-20 flex flex-col items-center text-center space-y-6">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
-                <Upload className="w-8 h-8 text-slate-400" />
+              <div className="bg-slate-50 p-8 rounded-full">
+                <img src={LOGO_SQM} alt="SQM Lithium Logo" className="h-12 w-auto grayscale object-contain" crossOrigin="anonymous" />
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold">Esperando datos...</h2>
@@ -280,16 +283,19 @@ const App: React.FC = () => {
           ) : (
             <>
               {/* --- PAGINA 1: ENCABEZADO + RESUMEN --- */}
-              <div className="no-page-break space-y-8 bg-white">
+              <div className="no-page-break space-y-8 bg-white min-h-[900px] flex flex-col">
                 {/* Header */}
                 <div className="flex justify-between items-start pb-6 border-b-2 border-slate-100">
-                  <div className="flex flex-col">
-                    <h1 className="text-4xl font-[900] text-[#1e293b] tracking-tighter leading-none mb-1">
-                      INFORME OPERATIVO
-                    </h1>
-                    <p className="text-slate-400 font-bold text-[9px] tracking-[0.3em] uppercase">
-                      Despacho Litio - Gerencia de Operaciones
-                    </p>
+                  <div className="flex flex-col gap-4">
+                    <img src={LOGO_SQM} alt="SQM Lithium Logo" className="h-10 w-auto object-contain" crossOrigin="anonymous" />
+                    <div>
+                      <h1 className="text-4xl font-[900] text-[#1e293b] tracking-tighter leading-none mb-1">
+                        INFORME OPERATIVO
+                      </h1>
+                      <p className="text-slate-400 font-bold text-[9px] tracking-[0.3em] uppercase">
+                        Despacho Litio - Gerencia de Operaciones Salar
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right flex flex-col items-end">
                     <p className="text-slate-400 font-bold text-[8px] tracking-widest uppercase mb-0.5">
@@ -332,57 +338,42 @@ const App: React.FC = () => {
                         </div>
                       ))}
                     </div>
-
-                    <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-emerald-500 text-white font-black text-[9px] w-6 h-6 flex items-center justify-center rounded shadow-sm">
-                          DL
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          Jornada {selectedDate}
-                        </span>
-                      </div>
-                      <div className="bg-emerald-50 px-3 py-1 rounded-full">
-                         <span className="text-emerald-600 text-[8px] font-black uppercase tracking-widest">
-                          Vistaprevia Ejecutiva
-                         </span>
-                      </div>
-                    </div>
                   </div>
                 )}
+                
+                <ReportFooter />
               </div>
 
-              {/* --- PAGINA 2: COMPARATIVA TONELAJE --- */}
-              <div className="space-y-6 pt-10 page-break-before bg-white">
+              {/* Secciones de Gráficos y Detalles */}
+              <div className="space-y-6 pt-10 page-break-before bg-white min-h-[900px] flex flex-col">
                 <h2 className="text-lg font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Distribución de Tonelaje</h2>
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="no-page-break bg-white">
+                <div className="flex-1">
                     <ChartCard {...userCharts[0]} data={filteredData} />
-                  </div>
                 </div>
+                <ReportFooter />
               </div>
 
-              {/* --- PAGINA 3: EQUIPOS Y DESTINOS --- */}
-              <div className="space-y-6 pt-10 page-break-before bg-white">
+              <div className="space-y-6 pt-10 page-break-before bg-white min-h-[900px] flex flex-col">
                 <h2 className="text-lg font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Equipos y Logística por Destino</h2>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-6 flex-1">
                   {userCharts.slice(1).map((c, i) => (
-                    <div key={i} className="no-page-break bg-white">
-                      <ChartCard {...c} data={filteredData} />
-                    </div>
+                    <ChartCard key={i} {...c} data={filteredData} />
                   ))}
                 </div>
+                <ReportFooter />
               </div>
 
-              {/* --- PAGINAS 4+ EN ADELANTE: DESGLOSE POR PRODUCTO (1 por página) --- */}
               {productList.map((prod, idx) => (
-                <div key={prod} className="page-break-before pt-10 bg-white">
-                  <ProductDetailSection 
-                    product={prod} 
-                    data={filteredData.filter(d => d.Producto === prod)} 
-                    index={idx + 1} 
-                    total={productList.length}
-                  />
+                <div key={prod} className="page-break-before pt-10 bg-white min-h-[900px] flex flex-col">
+                  <div className="flex-1">
+                    <ProductDetailSection 
+                        product={prod} 
+                        data={filteredData.filter(d => d.Producto === prod)} 
+                        index={idx + 1} 
+                        total={productList.length}
+                    />
+                  </div>
+                  <ReportFooter />
                 </div>
               ))}
             </>

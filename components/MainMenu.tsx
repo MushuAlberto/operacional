@@ -6,15 +6,26 @@ interface MainMenuProps {
   onSelectView: (view: 'informe' | 'llegada') => void;
 }
 
+const LOGO_SQM = "https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg";
+
 const MainMenu: React.FC<MainMenuProps> = ({ onSelectView }) => {
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-8">
-      <div className="text-center mb-16 space-y-4">
-        <div className="flex justify-center items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-[#89B821] rounded-full flex items-center justify-center text-white font-black shadow-lg">Li</div>
+      <div className="text-center mb-16 space-y-6">
+        <div className="flex flex-col justify-center items-center gap-4 mb-2">
+          <div className="bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-4 transition-transform hover:scale-105 duration-500">
+            <img 
+              src={LOGO_SQM} 
+              alt="SQM Lithium Logo" 
+              className="h-16 w-auto object-contain"
+              onError={(e) => {
+                e.currentTarget.src = "https://placehold.co/200x80/89B821/white?text=SQM+LITHIUM";
+              }}
+            />
+          </div>
           <h1 className="text-4xl font-black text-slate-800 tracking-tighter">SISTEMA DE GESTIÓN LOGÍSTICA</h1>
         </div>
-        <p className="text-slate-400 font-bold tracking-[0.3em] uppercase text-xs">Seleccione el módulo de trabajo</p>
+        <p className="text-slate-400 font-bold tracking-[0.3em] uppercase text-xs">Módulos Inteligentes de Operación</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl w-full">

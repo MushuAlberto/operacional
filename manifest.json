@@ -1,0 +1,23 @@
+
+{
+  "name": "Litio Dashboard SQM",
+  "short_name": "LitioDB",
+  "description": "Sistema de Gestión Logística e Informe Operativo",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

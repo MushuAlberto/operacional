@@ -21,6 +21,8 @@ interface LlegadaEquiposProps {
   onBack: () => void;
 }
 
+const LOGO_SQM = "https://www.sqm.com/wp-content/uploads/2021/03/logo-sqm-header.svg";
+
 const COMPANY_LOGOS: Record<string, string> = {
   "COSEDUCAM S A": "CD",
   "M&Q SPA": "MQ",
@@ -95,7 +97,7 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedDestinos, setSelectedDestinos] = useState<string[]>([]);
+  const [selectedDestinos, setSelectedDestinos, ] = useState<string[]>([]);
   const [selectedEmpresas, setSelectedEmpresas] = useState<string[]>([]);
   const [hourRange, setHourRange] = useState<[number, number]>([0, 23]);
 
@@ -130,6 +132,7 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
             fecha: fechaStr,
             destino: normalizarDestino(row[3]),
             empresa: normalizarNombreEmpresa(row[11]),
+            // Fixed typo: 'h' was not defined, should be 'hora'
             hora: isNaN(hora) ? 0 : hora
           };
         }).filter((r): r is ArrivalData => r !== null);
@@ -166,7 +169,6 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
 
   const exportPDF = async (empresa: string) => {
     const html2canvas = (window as any).html2canvas;
-    // Acceso robusto al constructor jsPDF dependiendo del namespace de la librería cargada
     const jsPDFConstructor = (window as any).jspdf?.jsPDF || (window as any).jsPDF;
     
     if (!html2canvas || !jsPDFConstructor) {
@@ -177,7 +179,6 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
     setExporting(true);
     
     try {
-      // Obtenemos los elementos de las dos páginas
       const p1Element = document.getElementById(`pdf-page1-${empresa}`);
       const p2Element = document.getElementById(`pdf-page2-${empresa}`);
 
@@ -185,7 +186,6 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
         throw new Error("No se encontraron los elementos del reporte.");
       }
 
-      // Capturamos Página 1 (Horizontal)
       const canvas1 = await html2canvas(p1Element, {
         scale: 2,
         useCORS: true,
@@ -193,7 +193,6 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
         logging: false
       });
 
-      // Capturamos Página 2 (Vertical)
       const canvas2 = await html2canvas(p2Element, {
         scale: 2,
         useCORS: true,
@@ -201,14 +200,10 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
         logging: false
       });
 
-      // Generamos el PDF con orientación inicial horizontal
       const pdf = new jsPDFConstructor('l', 'mm', 'a4');
-      
-      // Añadir Página 1
       const imgData1 = canvas1.toDataURL('image/jpeg', 1.0);
       pdf.addImage(imgData1, 'JPEG', 0, 0, 297, 210);
 
-      // Añadir Página 2 (Orientación Vertical 'p')
       pdf.addPage('a4', 'p');
       const imgData2 = canvas2.toDataURL('image/jpeg', 1.0);
       pdf.addImage(imgData2, 'JPEG', 0, 0, 210, 297);
@@ -230,7 +225,10 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
         <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 font-black text-[10px] uppercase tracking-widest transition-colors group">
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Volver al Menú
         </button>
-        <div className="space-y-2">
+        <div className="space-y-4">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-center">
+            <img src={LOGO_SQM} alt="SQM" className="h-8 w-auto grayscale opacity-50" />
+          </div>
           <div className="flex items-center gap-2 mb-1">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
               <Clock size={20} />
@@ -273,19 +271,6 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                   ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-2"><Building2 size={14} /> Empresas</label>
-                <div className="max-h-32 overflow-y-auto bg-slate-50 rounded-xl border border-slate-100 p-3 space-y-1">
-                  {availableEmpresas.map(emp => (
-                    <label key={emp} className="flex items-center gap-2 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-white p-1 rounded transition-colors">
-                      <input type="checkbox" checked={selectedEmpresas.includes(emp)} onChange={(e) => {
-                        if (e.target.checked) setSelectedEmpresas(prev => [...prev, emp]);
-                        else setSelectedEmpresas(prev => prev.filter(x => x !== emp));
-                      }} /> {emp}
-                    </label>
-                  ))}
-                </div>
-              </div>
             </>
           )}
         </div>
@@ -322,8 +307,8 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                   <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden p-12 space-y-10">
                     <div className="flex justify-between items-center border-b border-slate-100 pb-8">
                       <div className="flex gap-6 items-center">
-                        <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg">
-                          {COMPANY_LOGOS[empresa] || empresa.substring(0, 2)}
+                        <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg overflow-hidden">
+                           <img src={`https://placehold.co/100x100/1e293b/white?text=${COMPANY_LOGOS[empresa] || 'AGS'}`} alt="Empresa" />
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Operaciones Litio</p>
@@ -336,7 +321,7 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                         className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[11px] font-black tracking-widest uppercase hover:bg-slate-800 transition-all flex items-center gap-3 no-print disabled:opacity-50"
                       >
                         {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
-                        Exportar PDF Mixto (H/V)
+                        Exportar PDF
                       </button>
                     </div>
                     
@@ -372,51 +357,32 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  {/* --- PLANTILLAS PDF (OCULTAS FUERA DE PANTALLA) --- */}
+                  {/* --- PLANTILLAS PDF (OCULTAS) --- */}
                   <div style={{ position: 'absolute', left: '-10000px', top: '-10000px' }}>
-                    
-                    {/* PAGINA 1: HORIZONTAL - GRÁFICO */}
                     <div id={`pdf-page1-${empresa}`} style={{ width: '297mm', height: '210mm', backgroundColor: 'white', padding: '15mm', boxSizing: 'border-box' }}>
-                      <div className="text-center mb-6">
-                          <h1 className="text-2xl font-black text-slate-800">Reporte de Equipos - {empresa}</h1>
-                          <p className="text-sm font-bold text-slate-500">Fecha: {selectedDate}</p>
+                      <div className="flex justify-between items-center mb-10">
+                        <img src={LOGO_SQM} alt="SQM" className="h-10 w-auto" />
+                        <div className="text-right">
+                          <h1 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Reporte de Equipos</h1>
+                          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{selectedDate}</p>
+                        </div>
                       </div>
 
-                      {/* Banner SQM */}
-                      <div className="relative h-20 mb-10 border-t-[6px] border-[#89B821] pt-4">
-                           <div className="flex justify-between items-start px-2">
-                              <div className="flex items-center gap-4">
-                                  <div className="w-14 h-14 bg-[#89B821] rounded-full flex items-center justify-center text-white font-black text-xs">SQM</div>
-                                  <div className="w-12 h-12 border-2 border-[#89B821] rounded-full flex flex-col items-center justify-center text-[7px] font-black text-[#89B821] leading-none text-center uppercase">Bien<br/>Hecho<br/>Seguro</div>
-                                  <div className="flex flex-col ml-2">
-                                      <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">Operaciones Salar</span>
-                                      <span className="text-xs font-bold text-blue-900 uppercase tracking-tight">Despacho Litio</span>
-                                  </div>
-                              </div>
-                              <div className="text-right">
-                                  <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Llegada de Camiones por Transportista y Horario (SdA)</h2>
-                                  <div className="flex gap-1 justify-end mt-1 opacity-40">
-                                      <Truck size={10} /><Truck size={10} /><Truck size={10} />
-                                  </div>
-                              </div>
-                           </div>
-                      </div>
+                      <div className="relative h-1 mb-10 bg-[#89B821] rounded-full" />
 
-                      {/* Logo y Empresa */}
-                      <div className="flex items-center gap-6 mb-12 px-10">
-                          <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-2xl uppercase shadow-sm">
-                              {COMPANY_LOGOS[empresa] || empresa.substring(0, 2)}
+                      <div className="flex items-center gap-8 mb-12 px-6">
+                          <div className="w-24 h-24 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-3xl uppercase overflow-hidden">
+                              <img src={`https://placehold.co/150x150/1e293b/white?text=${COMPANY_LOGOS[empresa] || 'AGS'}`} alt="Empresa" crossOrigin="anonymous" />
                           </div>
                           <div>
-                              <h3 className="text-xl font-black uppercase text-slate-800">{empresa}</h3>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Mining Services and Derivates S.P.A.</p>
+                              <h3 className="text-3xl font-black uppercase text-slate-800 tracking-tighter">{empresa}</h3>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Socio Logístico Estratégico SQM</p>
                           </div>
                       </div>
 
-                      {/* Gráfico Horizontal */}
-                      <div className="px-10">
-                          <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-8">Equipos por hora - {empresa}</h4>
-                          <div style={{ width: '250mm', height: '90mm' }}>
+                      <div className="px-6">
+                          <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Gráfico de Frecuencia Horaria</h4>
+                          <div style={{ width: '250mm', height: '80mm' }}>
                               <ResponsiveContainer width="100%" height="100%">
                                   <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -441,17 +407,21 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                       </div>
                     </div>
 
-                    {/* PAGINA 2: VERTICAL - TABLA */}
                     <div id={`pdf-page2-${empresa}`} style={{ width: '210mm', minHeight: '297mm', backgroundColor: 'white', padding: '20mm', boxSizing: 'border-box' }}>
-                       <h2 className="text-2xl font-black text-slate-800 text-center mb-12 uppercase tracking-tight">Detalle por Destino y Horario</h2>
+                       <div className="flex justify-between items-center mb-12 border-b-2 border-slate-100 pb-6">
+                         <img src={LOGO_SQM} alt="SQM" className="h-8 w-auto grayscale" />
+                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Detalle Operativo &bull; Pág 2</span>
+                       </div>
                        
-                       <table className="w-full border-collapse" style={{ border: '2px solid #000' }}>
+                       <h2 className="text-2xl font-black text-slate-800 text-center mb-12 uppercase tracking-tighter">Detalle por Destino y Horario</h2>
+                       
+                       <table className="w-full border-collapse" style={{ border: '2.5px solid #000' }}>
                           <thead>
                               <tr style={{ backgroundColor: '#f8fafc' }}>
-                                  <th className="p-2 text-[11px] font-black text-center border-2 border-black uppercase" style={{ width: '25%' }}>Hora</th>
+                                  <th className="p-3 text-[11px] font-black text-center border-2 border-black uppercase" style={{ width: '25%' }}>Rango Horario</th>
                                   {selectedDestinos.map(dest => (
-                                      <th key={dest} className="p-2 text-[10px] font-black text-center border-2 border-black uppercase leading-tight">
-                                        {dest.replace(' ', '\n')}
+                                      <th key={dest} className="p-3 text-[10px] font-black text-center border-2 border-black uppercase leading-tight">
+                                        {dest}
                                       </th>
                                   ))}
                               </tr>
@@ -460,13 +430,13 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                               {Array.from({ length: 24 }, (_, h) => {
                                   return (
                                       <tr key={h}>
-                                          <td className="p-1.5 text-[10px] font-bold text-center border-2 border-black">
+                                          <td className="p-2 text-[10px] font-bold text-center border-2 border-black">
                                               {h.toString().padStart(2, '0')}:00 - {h.toString().padStart(2, '0')}:59
                                           </td>
                                           {selectedDestinos.map(dest => {
                                               const count = dataEmpresa.filter(d => d.hora === h && d.destino === dest).length;
                                               return (
-                                                  <td key={dest} className="p-1.5 text-[11px] font-bold text-center border-2 border-black">
+                                                  <td key={dest} className={`p-2 text-[11px] font-bold text-center border-2 border-black ${count > 0 ? 'bg-blue-50/30' : ''}`}>
                                                       {count}
                                                   </td>
                                               );
@@ -474,13 +444,12 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                                       </tr>
                                   );
                               })}
-                              {/* Fila de Total */}
                               <tr style={{ backgroundColor: '#f1f5f9' }}>
-                                  <td className="p-3 text-[12px] font-black uppercase tracking-widest text-left border-2 border-black">TOTAL</td>
+                                  <td className="p-4 text-[12px] font-black uppercase tracking-widest text-left border-2 border-black">TOTAL JORNADA</td>
                                   {selectedDestinos.map(dest => {
                                       const totalDest = dataEmpresa.filter(d => d.destino === dest).length;
                                       return (
-                                          <td key={dest} className="p-3 text-[12px] font-black text-center border-2 border-black">
+                                          <td key={dest} className="p-4 text-[14px] font-black text-center border-2 border-black">
                                               {totalDest}
                                           </td>
                                       );
@@ -488,13 +457,7 @@ const LlegadaEquipos: React.FC<LlegadaEquiposProps> = ({ onBack }) => {
                               </tr>
                           </tbody>
                        </table>
-                       
-                       <div className="mt-20 flex justify-between items-end opacity-20">
-                          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Generado digitalmente por Litio Dashboard</div>
-                          <div className="w-10 h-10 bg-slate-900 rounded flex items-center justify-center text-white font-black text-xs">Li</div>
-                       </div>
                     </div>
-
                   </div>
                 </div>
               );
